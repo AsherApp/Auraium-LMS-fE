@@ -5,7 +5,19 @@ import { useParams, useRouter } from "next/navigation"
 import { GlassCard } from "@/components/shared/glass-card"
 import { useAssignment, useGradingStats } from "@/services/assignments/hook"
 import { useAssignmentSubmissions } from "@/services/assignments/hook"
-import { type Assignment, type Submission, type GradingStats, type AssignmentType } from "@/services/assignments/api"
+import { type Assignment, type Submission, type AssignmentType } from "@/services/assignments/api"
+
+type GradingStats = {
+  total_submissions: number
+  submitted_count: number
+  graded_submissions: number
+  pending_grading: number
+  average_grade: number
+  late_count: number
+  completion_rate: number
+  grading_progress: number
+  grade_distribution: { [key: string]: number }
+}
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs"
@@ -233,9 +245,9 @@ function SubmissionsTableView({ assignment }: { assignment: AssignmentWithStats 
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(submission)}</TableCell>
-                  <TableCell className="text-slate-300">{formatDate(submission.submitted_at)}</TableCell>
+                  <TableCell className="text-slate-300">{formatDate(submission.submitted_at || null)}</TableCell>
                   <TableCell>
-                    {submission.grade !== null ? (
+                    {submission.grade !== null && submission.grade !== undefined ? (
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-white">{submission.grade}/{assignment.points}</span>
                         <span className="text-sm text-slate-400">
@@ -325,6 +337,13 @@ const calculateStatsFromSubmissions = (submissions: any[]) => {
   }
 }
 
+// Helper function to get assignment scope level
+const getAssignmentScope = (assignment: Assignment) => {
+  if (assignment.lesson_id) return 'lesson'
+  if (assignment.module_id) return 'module'
+  return 'course'
+}
+
 // Helper function to get scope color
 const getScopeColor = (level: string) => {
   switch (level) {
@@ -401,17 +420,17 @@ export default function TeacherAssignmentDetailPage() {
         title: assignment.course_title || `Course ${assignment.course_id}`
       })
       
-      if (assignment.scope?.moduleId) {
+      if (assignment.module_id) {
         setModuleInfo({
-          id: assignment.scope.moduleId,
-          title: `Module ${assignment.scope.moduleId}`
+          id: assignment.module_id,
+          title: `Module ${assignment.module_id}`
         })
       }
       
-      if (assignment.scope?.lessonId) {
+      if (assignment.lesson_id) {
         setLessonInfo({
-          id: assignment.scope.lessonId,
-          title: `Lesson ${assignment.scope.lessonId}`
+          id: assignment.lesson_id,
+          title: `Lesson ${assignment.lesson_id}`
         })
       }
       
@@ -419,13 +438,13 @@ export default function TeacherAssignmentDetailPage() {
       setEditForm({
         title: assignment.title,
         description: assignment.description,
-        instructions: assignment.instructions,
+        instructions: assignment.description, // Use description as instructions
         points: assignment.points,
         due_at: assignment.due_at ? new Date(assignment.due_at).toISOString().split('T')[0] : "",
         type: assignment.type,
-        allow_late_submissions: assignment.allow_late_submissions,
-        late_penalty_percent: assignment.late_penalty_percent,
-        max_attempts: assignment.max_attempts
+        allow_late_submissions: false, // Default value
+        late_penalty_percent: 0, // Default value
+        max_attempts: 1 // Default value
       })
     }
   }, [assignment])
@@ -529,231 +548,221 @@ export default function TeacherAssignmentDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => router.push('/teacher/assignments')}
-            className="text-slate-300 hover:text-white hover:bg-white/10"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Assignments
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-white">{assignment.title}</h1>
-            <p className="text-slate-400">Assignment Management & Analytics</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header with Progress Bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.push('/teacher/assignments')}
+              className="text-slate-400 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Assignments
+            </Button>
+            <div className="flex items-center gap-3">
+              <Badge className={getScopeColor(getAssignmentScope(assignment))}>
+                {getScopeLabel(getAssignmentScope(assignment))}
+              </Badge>
+            </div>
           </div>
+          
+          {/* Assignment Header Card */}
+          <GlassCard className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                {getScopeIcon(getAssignmentScope(assignment))}
+                <div>
+                  <h1 className="text-3xl font-bold text-white">{assignment.title}</h1>
+                  <p className="text-slate-400">Assignment Management & Analytics</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-white">{assignment.points}</div>
+                <div className="text-sm text-slate-400">points</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-6 text-sm text-slate-400">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>Due: {assignment.due_at ? new Date(assignment.due_at).toLocaleDateString() : 'No due date'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="capitalize">{assignment.type?.replace('_', ' ')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>{stats?.total_submissions || 0} submissions</span>
+              </div>
+            </div>
+          </GlassCard>
         </div>
-        <Badge className={getScopeColor(assignment.scope?.level || 'course')}>
-          {getScopeLabel(assignment.scope?.level || 'course')}
-        </Badge>
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => router.push(`/teacher/course/${assignment.course_id}`)}
-            className="bg-blue-600/80 hover:bg-blue-600 text-white"
-          >
-            <BookOpen className="h-4 w-4 mr-2" />
-            View Course
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-white/20 text-white hover:bg-white/10"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setEditing(!editing)}
-            className="text-slate-300 hover:text-white hover:bg-white/10"
-          >
-            {editing ? <Save className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
-            {editing ? 'Save' : 'Edit'}
-          </Button>
-          <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-            <DialogTrigger asChild>
+
+        {/* Assignment Stats Overview */}
+        <GlassCard className="p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-blue-600/20 rounded-lg">
+                <Target className="h-6 w-6 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{assignment.points}</p>
+                <p className="text-sm text-slate-400">Total Points</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-green-600/20 rounded-lg">
+                <Users className="h-6 w-6 text-green-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats?.total_submissions || 0}</p>
+                <p className="text-sm text-slate-400">Submissions</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-orange-600/20 rounded-lg">
+                <Award className="h-6 w-6 text-orange-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">
+                  {stats?.average_grade ? Math.round(stats.average_grade) : 0}%
+                </p>
+                <p className="text-sm text-slate-400">Average Grade</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-600/20 rounded-lg">
+                <Activity className="h-6 w-6 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats?.pending_grading || 0}</p>
+                <p className="text-sm text-slate-400">Pending Grading</p>
+              </div>
+            </div>
+          </div>
+        </GlassCard>
+
+        {/* Quick Actions Bar */}
+        <GlassCard className="p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={() => router.push(`/teacher/course/${assignment.course_id}`)}
+                className="bg-blue-600/80 hover:bg-blue-600 text-white"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                View Course
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export Data
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                onClick={() => setEditing(!editing)}
+                className="text-slate-300 hover:text-white hover:bg-white/10"
               >
-                <Trash2 className="h-4 w-4" />
+                {editing ? <Save className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
+                {editing ? 'Save Changes' : 'Edit Assignment'}
               </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white">
-              <DialogHeader>
-                <DialogTitle>Delete Assignment</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <p className="text-slate-300">
-                  Are you sure you want to delete "{assignment.title}"? This action cannot be undone.
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteAssignment}
-                    className="bg-red-600/80 hover:bg-red-600"
-                  >
-                    Delete Assignment
-                  </Button>
+              <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <DialogTrigger asChild>
                   <Button
                     variant="ghost"
-                    onClick={() => setShowDeleteDialog(false)}
+                    size="sm"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                   >
-                    Cancel
+                    <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      {/* Scope Context Information */}
-      <GlassCard className="p-4">
-        <div className="flex items-center gap-3 mb-3">
-          {getScopeIcon(assignment.scope?.level || 'course')}
-          <h3 className="text-lg font-semibold text-white">Assignment Context</h3>
-        </div>
-        <div className="space-y-2">
-          {/* Course Context - Always shown */}
-          {courseInfo && (
-            <div className="flex items-center gap-2 text-slate-300">
-              <BookOpen className="h-4 w-4 text-blue-400" />
-              <span className="font-medium">Course:</span>
-              <span>{courseInfo.title}</span>
-            </div>
-          )}
-
-          {/* Module Context - Show if module or lesson scoped */}
-          {moduleInfo && (assignment.scope?.level === 'module' || assignment.scope?.level === 'lesson') && (
-            <div className="flex items-center gap-2 text-slate-300">
-              <FolderOpen className="h-4 w-4 text-purple-400" />
-              <span className="font-medium">Module:</span>
-              <span>{moduleInfo.title}</span>
-            </div>
-          )}
-
-          {/* Lesson Context - Show if lesson scoped */}
-          {lessonInfo && assignment.scope?.level === 'lesson' && (
-            <div className="flex items-center gap-2 text-slate-300">
-              <BookMarked className="h-4 w-4 text-green-400" />
-              <span className="font-medium">Lesson:</span>
-              <span>{lessonInfo.title}</span>
-            </div>
-          )}
-
-          {/* Scope Level Badge */}
-          <div className="flex items-center gap-2 mt-3">
-            <Badge variant="outline" className="text-xs">
-              {assignment.scope?.level?.toUpperCase() || 'COURSE'} LEVEL
-            </Badge>
-            {assignment.scope?.level === 'course' && (
-              <span className="text-xs text-slate-400">Available to all students in this course</span>
-            )}
-            {assignment.scope?.level === 'module' && (
-              <span className="text-xs text-slate-400">Specific to this module</span>
-            )}
-            {assignment.scope?.level === 'lesson' && (
-              <span className="text-xs text-slate-400">Specific to this lesson</span>
-            )}
-          </div>
-        </div>
-      </GlassCard>
-
-      {/* Assignment Overview Stats */}
-      <GlassCard className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-600/20 rounded-lg">
-              <Target className="h-6 w-6 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{assignment.points}</p>
-              <p className="text-sm text-slate-400">Points</p>
+                </DialogTrigger>
+                <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white">
+                  <DialogHeader>
+                    <DialogTitle>Delete Assignment</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-slate-300">
+                      Are you sure you want to delete "{assignment.title}"? This action cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteAssignment}
+                        className="bg-red-600/80 hover:bg-red-600"
+                      >
+                        Delete Assignment
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowDeleteDialog(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-600/20 rounded-lg">
-              <Users className="h-6 w-6 text-green-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{stats?.total_submissions || 0}</p>
-              <p className="text-sm text-slate-400">Submissions</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-orange-600/20 rounded-lg">
-              <Award className="h-6 w-6 text-orange-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {stats?.average_grade ? Math.round(stats.average_grade) : 0}%
-              </p>
-              <p className="text-sm text-slate-400">Avg Grade</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-600/20 rounded-lg">
-              <Activity className="h-6 w-6 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{stats?.pending_grading || 0}</p>
-              <p className="text-sm text-slate-400">Pending</p>
-            </div>
-          </div>
-        </div>
-      </GlassCard>
+        </GlassCard>
 
-      {/* Main Content Tabs */}
-      <div className="w-full">
-        <div className="flex justify-center mb-6">
-          <FluidTabs
-            tabs={[
-              {
-                id: 'overview',
-                label: 'Overview',
-                icon: <Eye className="h-4 w-4" />
-              },
-              {
-                id: 'submissions',
-                label: 'Submissions',
-                icon: <Users className="h-4 w-4" />,
-                badge: stats?.total_submissions || 0
-              },
-              {
-                id: 'analytics',
-                label: 'Analytics',
-                icon: <BarChart3 className="h-4 w-4" />
-              },
-              {
-                id: 'settings',
-                label: 'Settings',
-                icon: <Settings className="h-4 w-4" />
-              }
-            ]}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            variant="default"
-            width="wide"
-          />
-        </div>
+        {/* Main Content Tabs */}
+        <div className="w-full">
+          <div className="flex justify-center mb-8">
+            <FluidTabs
+              tabs={[
+                {
+                  id: 'overview',
+                  label: 'Overview',
+                  icon: <Eye className="h-4 w-4" />
+                },
+                {
+                  id: 'submissions',
+                  label: 'Submissions',
+                  icon: <Users className="h-4 w-4" />,
+                  badge: stats?.total_submissions || 0
+                },
+                {
+                  id: 'analytics',
+                  label: 'Analytics',
+                  icon: <BarChart3 className="h-4 w-4" />
+                },
+                {
+                  id: 'settings',
+                  label: 'Settings',
+                  icon: <Settings className="h-4 w-4" />
+                }
+              ]}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              variant="default"
+              width="wide"
+            />
+          </div>
 
-        {/* Tab Content */}
-        {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Assignment Details */}
-            <div className="lg:col-span-1">
-              <GlassCard className="p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Assignment Details</h3>
+          {/* Tab Content */}
+          {activeTab === "overview" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Assignment Details */}
+              <div className="lg:col-span-2">
+                <GlassCard className="p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <FileText className="h-5 w-5 text-blue-400" />
+                    <h3 className="text-xl font-semibold text-white">Assignment Details</h3>
+                  </div>
                 
                 {editing ? (
                   <div className="space-y-4">
@@ -854,10 +863,10 @@ export default function TeacherAssignmentDetailPage() {
                       </div>
                     )}
                     
-                    {assignment.instructions && (
+                    {assignment.description && (
                       <div>
                         <label className="text-sm font-medium text-slate-400">Instructions</label>
-                        <p className="text-slate-300">{assignment.instructions}</p>
+                        <p className="text-slate-300">{assignment.description}</p>
                       </div>
                     )}
                     
@@ -870,123 +879,300 @@ export default function TeacherAssignmentDetailPage() {
                     
                     <div>
                       <label className="text-sm font-medium text-slate-400">Scope</label>
-                      <p className="text-white capitalize">{assignment.scope.level}</p>
+                      <p className="text-white capitalize">{getAssignmentScope(assignment)}</p>
                     </div>
                     
                     <div>
                       <label className="text-sm font-medium text-slate-400">Max Attempts</label>
-                      <p className="text-white">{assignment.max_attempts}</p>
+                      <p className="text-white">1</p>
                     </div>
                     
-                    {assignment.allow_late_submissions && (
-                      <div>
-                        <label className="text-sm font-medium text-slate-400">Late Penalty</label>
-                        <p className="text-white">{assignment.late_penalty_percent}%</p>
-                      </div>
-                    )}
+                    <div>
+                      <label className="text-sm font-medium text-slate-400">Late Penalty</label>
+                      <p className="text-white">0%</p>
+                    </div>
                   </div>
                 )}
-              </GlassCard>
-            </div>
+                </GlassCard>
+              </div>
 
-          </div>
-        )}
+              {/* Sidebar */}
+              <div className="space-y-6">
+                {/* Assignment Context */}
+                <GlassCard className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Settings className="h-5 w-5 text-slate-400" />
+                    <h3 className="text-lg font-semibold text-white">Assignment Context</h3>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {/* Course Context - Always shown */}
+                    {courseInfo && (
+                      <div className="flex items-center gap-3 text-slate-300">
+                        <BookOpen className="h-4 w-4 text-blue-400" />
+                        <div>
+                          <span className="font-medium">Course:</span>
+                          <p className="text-white">{courseInfo.title}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Module Context - Show if module or lesson scoped */}
+                    {moduleInfo && (getAssignmentScope(assignment) === 'module' || getAssignmentScope(assignment) === 'lesson') && (
+                      <div className="flex items-center gap-3 text-slate-300">
+                        <FolderOpen className="h-4 w-4 text-purple-400" />
+                        <div>
+                          <span className="font-medium">Module:</span>
+                          <p className="text-white">{moduleInfo.title}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lesson Context - Show if lesson scoped */}
+                    {lessonInfo && getAssignmentScope(assignment) === 'lesson' && (
+                      <div className="flex items-center gap-3 text-slate-300">
+                        <BookMarked className="h-4 w-4 text-green-400" />
+                        <div>
+                          <span className="font-medium">Lesson:</span>
+                          <p className="text-white">{lessonInfo.title}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Scope Level Info */}
+                    <div className="pt-3 border-t border-white/10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {getAssignmentScope(assignment).toUpperCase()} LEVEL
+                        </Badge>
+                      </div>
+                      {getAssignmentScope(assignment) === 'course' && (
+                        <p className="text-xs text-slate-400">Available to all students in this course</p>
+                      )}
+                      {getAssignmentScope(assignment) === 'module' && (
+                        <p className="text-xs text-slate-400">Specific to this module</p>
+                      )}
+                      {getAssignmentScope(assignment) === 'lesson' && (
+                        <p className="text-xs text-slate-400">Specific to this lesson</p>
+                      )}
+                    </div>
+                  </div>
+                </GlassCard>
+
+                {/* Quick Stats */}
+                <GlassCard className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <BarChart3 className="h-5 w-5 text-green-400" />
+                    <h3 className="text-lg font-semibold text-white">Quick Stats</h3>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">Completion Rate:</span>
+                      <span className="text-white font-medium">
+                        {stats?.completion_rate ? Math.round(stats.completion_rate) : 0}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">Grading Progress:</span>
+                      <span className="text-white font-medium">
+                        {stats?.grading_progress ? Math.round(stats.grading_progress) : 0}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">Late Submissions:</span>
+                      <span className="text-white font-medium">{stats?.late_count || 0}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-300">Max Attempts:</span>
+                      <span className="text-white font-medium">1</span>
+                    </div>
+                  </div>
+                </GlassCard>
+              </div>
+            </div>
+          )}
 
         {activeTab === "submissions" && (
           <SubmissionsTableView assignment={{...assignment, stats: stats || undefined}} />
         )}
 
-        {activeTab === "analytics" && (
-          <GlassCard className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Assignment Analytics</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h4 className="text-md font-medium text-white">Submission Statistics</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Total Submissions:</span>
-                    <span className="text-white font-semibold">{stats?.total_submissions || 0}</span>
+          {activeTab === "analytics" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Submission Statistics */}
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <PieChart className="h-5 w-5 text-blue-400" />
+                  <h3 className="text-xl font-semibold text-white">Submission Statistics</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                      <span className="text-slate-300">Total Submissions</span>
+                    </div>
+                    <span className="text-white font-semibold text-lg">{stats?.total_submissions || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Graded:</span>
-                    <span className="text-white font-semibold">{stats?.graded_submissions || 0}</span>
+                  
+                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                      <span className="text-slate-300">Graded</span>
+                    </div>
+                    <span className="text-white font-semibold text-lg">{stats?.graded_submissions || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Pending Grading:</span>
-                    <span className="text-white font-semibold">{stats?.pending_grading || 0}</span>
+                  
+                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+                      <span className="text-slate-300">Pending Grading</span>
+                    </div>
+                    <span className="text-white font-semibold text-lg">{stats?.pending_grading || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Average Grade:</span>
-                    <span className="text-white font-semibold">
+                  
+                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                      <span className="text-slate-300">Average Grade</span>
+                    </div>
+                    <span className="text-white font-semibold text-lg">
                       {stats?.average_grade ? `${stats.average_grade.toFixed(1)}%` : 'N/A'}
                     </span>
                   </div>
                 </div>
-              </div>
+              </GlassCard>
               
-              <div className="space-y-4">
-                <h4 className="text-md font-medium text-white">Grade Distribution</h4>
-                <div className="space-y-2">
+              {/* Grade Distribution */}
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <BarChart3 className="h-5 w-5 text-green-400" />
+                  <h3 className="text-xl font-semibold text-white">Grade Distribution</h3>
+                </div>
+                
+                <div className="space-y-3">
                   {stats?.grade_distribution && Object.entries(stats.grade_distribution).map(([grade, count]) => (
-                    <div key={grade} className="flex justify-between">
-                      <span className="text-slate-400">{grade}:</span>
-                      <span className="text-white font-semibold">{count}</span>
+                    <div key={grade} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                      <span className="text-slate-300 font-medium">{grade}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-400 to-green-400 rounded-full"
+                            style={{ width: `${((count as number) / (stats?.total_submissions || 1)) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-white font-semibold w-8 text-right">{count as number}</span>
+                      </div>
                     </div>
                   ))}
+                  
+                  {(!stats?.grade_distribution || Object.keys(stats.grade_distribution).length === 0) && (
+                    <div className="text-center py-8">
+                      <BarChart3 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                      <p className="text-slate-400">No grade data available yet</p>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </GlassCard>
             </div>
-          </GlassCard>
-        )}
+          )}
 
-        {activeTab === "settings" && (
-          <GlassCard className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Assignment Settings</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-md font-medium text-white">Late Submissions</h4>
-                  <p className="text-sm text-slate-400">Allow students to submit after the due date</p>
+          {activeTab === "settings" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Assignment Settings */}
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <Settings className="h-5 w-5 text-blue-400" />
+                  <h3 className="text-xl font-semibold text-white">Assignment Settings</h3>
                 </div>
-                <Button
-                  variant={assignment.allow_late_submissions ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    // Toggle late submissions setting
-                  }}
-                >
-                  {assignment.allow_late_submissions ? "Enabled" : "Disabled"}
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-md font-medium text-white">Anonymous Grading</h4>
-                  <p className="text-sm text-slate-400">Hide student names during grading</p>
+                
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                    <div>
+                      <h4 className="text-md font-medium text-white">Late Submissions</h4>
+                      <p className="text-sm text-slate-400">Allow students to submit after the due date</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-white/20 text-white hover:bg-white/10"
+                      onClick={() => {
+                        // Toggle late submissions setting
+                      }}
+                    >
+                      Disabled
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                    <div>
+                      <h4 className="text-md font-medium text-white">Anonymous Grading</h4>
+                      <p className="text-sm text-slate-400">Hide student names during grading</p>
+                    </div>
+                    <Button
+                      variant={assignment.settings?.anonymous_grading ? "default" : "outline"}
+                      size="sm"
+                      className={assignment.settings?.anonymous_grading ? "bg-green-600/80 hover:bg-green-600" : "border-white/20 text-white hover:bg-white/10"}
+                    >
+                      {assignment.settings?.anonymous_grading ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                    <div>
+                      <h4 className="text-md font-medium text-white">Show Grades Immediately</h4>
+                      <p className="text-sm text-slate-400">Students can see their grades right after submission</p>
+                    </div>
+                    <Button
+                      variant={assignment.settings?.show_grades_immediately ? "default" : "outline"}
+                      size="sm"
+                      className={assignment.settings?.show_grades_immediately ? "bg-green-600/80 hover:bg-green-600" : "border-white/20 text-white hover:bg-white/10"}
+                    >
+                      {assignment.settings?.show_grades_immediately ? "Enabled" : "Disabled"}
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  variant={assignment.settings?.anonymous_grading ? "default" : "outline"}
-                  size="sm"
-                >
-                  {assignment.settings?.anonymous_grading ? "Enabled" : "Disabled"}
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-md font-medium text-white">Show Grades Immediately</h4>
-                  <p className="text-sm text-slate-400">Students can see their grades right after submission</p>
+              </GlassCard>
+
+              {/* Assignment Information */}
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <FileText className="h-5 w-5 text-green-400" />
+                  <h3 className="text-xl font-semibold text-white">Assignment Information</h3>
                 </div>
-                <Button
-                  variant={assignment.settings?.show_grades_immediately ? "default" : "outline"}
-                  size="sm"
-                >
-                  {assignment.settings?.show_grades_immediately ? "Enabled" : "Disabled"}
-                </Button>
-              </div>
+                
+                <div className="space-y-4">
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <h4 className="text-md font-medium text-white mb-2">Assignment Type</h4>
+                    <p className="text-slate-300 capitalize">{assignment.type?.replace('_', ' ')}</p>
+                  </div>
+                  
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <h4 className="text-md font-medium text-white mb-2">Total Points</h4>
+                    <p className="text-slate-300">{assignment.points} points</p>
+                  </div>
+                  
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <h4 className="text-md font-medium text-white mb-2">Max Attempts</h4>
+                    <p className="text-slate-300">1 attempt</p>
+                  </div>
+                  
+                  {assignment.due_at && (
+                    <div className="p-4 bg-white/5 rounded-lg">
+                      <h4 className="text-md font-medium text-white mb-2">Due Date</h4>
+                      <p className="text-slate-300">{new Date(assignment.due_at).toLocaleDateString()}</p>
+                    </div>
+                  )}
+                  
+                  <div className="p-4 bg-white/5 rounded-lg">
+                    <h4 className="text-md font-medium text-white mb-2">Late Penalty</h4>
+                    <p className="text-slate-300">0% per day</p>
+                  </div>
+                </div>
+              </GlassCard>
             </div>
-          </GlassCard>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

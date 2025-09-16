@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
 import { useAssignment } from "@/services/assignments/hook"
 import { useSubmission, useSubmissionManagement } from "@/services/assignments/hook"
 import { http } from "@/services/http"
@@ -21,7 +22,30 @@ import {
   Download,
   Eye,
   Save,
-  Send
+  Send,
+  Calendar,
+  Timer,
+  BarChart3,
+  Edit,
+  Settings,
+  Target,
+  BookOpen,
+  MessageSquare,
+  Presentation,
+  Code,
+  Upload,
+  X,
+  File,
+  Image,
+  Video,
+  Music,
+  Archive,
+  Plus,
+  Minus,
+  CheckCircle2,
+  XCircle,
+  HelpCircle,
+  Trash2
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { FileList } from "@/components/shared/file-list"
@@ -47,6 +71,7 @@ export default function TeacherSubmissionDetailPage() {
   const [grade, setGrade] = useState<number>(0)
   const [feedback, setFeedback] = useState("")
   const [requestResubmission, setRequestResubmission] = useState(false)
+  const [isGrading, setIsGrading] = useState(false)
 
   // Load existing grade and feedback
   useEffect(() => {
@@ -59,6 +84,7 @@ export default function TeacherSubmissionDetailPage() {
   const handleGradeSubmission = async () => {
     if (!submission || !assignment) return
     
+    setIsGrading(true)
     try {
       await gradeSubmission(submission.id, {
         grade,
@@ -80,6 +106,8 @@ export default function TeacherSubmissionDetailPage() {
         description: error.message || "Please try again",
         variant: "destructive"
       })
+    } finally {
+      setIsGrading(false)
     }
   }
 
@@ -115,34 +143,65 @@ export default function TeacherSubmissionDetailPage() {
     }
   }
 
+  const getAssignmentTypeIcon = (type: string) => {
+    switch (type) {
+      case 'essay':
+        return <FileText className="h-5 w-5 text-blue-400" />
+      case 'quiz':
+        return <HelpCircle className="h-5 w-5 text-green-400" />
+      case 'project':
+        return <Target className="h-5 w-5 text-purple-400" />
+      case 'discussion':
+        return <MessageSquare className="h-5 w-5 text-orange-400" />
+      case 'presentation':
+        return <Presentation className="h-5 w-5 text-pink-400" />
+      case 'code_submission':
+        return <Code className="h-5 w-5 text-cyan-400" />
+      case 'peer_review':
+        return <Users className="h-5 w-5 text-yellow-400" />
+      case 'file_upload':
+        return <Upload className="h-5 w-5 text-indigo-400" />
+      default:
+        return <BookOpen className="h-5 w-5 text-slate-400" />
+    }
+  }
+
   if (assignmentLoading || submissionLoading) {
     return (
-      <div className="space-y-6">
-        <GlassCard className="p-8">
-          <div className="text-center text-slate-300">Loading submission...</div>
-        </GlassCard>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="space-y-6">
+            <GlassCard className="p-8">
+              <div className="text-center text-slate-300">Loading submission...</div>
+            </GlassCard>
+          </div>
+        </div>
       </div>
     )
   }
 
   if (submissionError || !assignment || !submission) {
     return (
-      <div className="space-y-6">
-        <GlassCard className="p-8">
-          <div className="text-center">
-            <h3 className="text-xl font-semibold text-white mb-2">Submission Not Found</h3>
-            <p className="text-slate-400 mb-4">
-              {submissionError || "This submission doesn't exist or you don't have access to it."}
-            </p>
-            <Button 
-              onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
-              className="bg-blue-600/80 hover:bg-blue-600 text-white"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Assignment
-            </Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="space-y-6">
+            <GlassCard className="p-8">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-white mb-2">Submission Not Found</h3>
+                <p className="text-slate-400 mb-4">
+                  {submissionError || "This submission doesn't exist or you don't have access to it."}
+                </p>
+                <Button 
+                  onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
+                  className="bg-blue-600/80 hover:bg-blue-600 text-white"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Assignment
+                </Button>
+              </div>
+            </GlassCard>
           </div>
-        </GlassCard>
+        </div>
       </div>
     )
   }
@@ -150,191 +209,235 @@ export default function TeacherSubmissionDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
-            className="text-slate-400 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Assignment
-          </Button>
-          <div className="flex items-center gap-3">
-            {getStatusBadge(submission.status)}
+        {/* Header with Progress Bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
+              className="text-slate-400 hover:text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Assignment
+            </Button>
+            <div className="flex items-center gap-3">
+              {getStatusBadge(submission.status)}
+            </div>
           </div>
+          
+          {/* Assignment Progress */}
+          <GlassCard className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                {getAssignmentTypeIcon(assignment.type)}
+                <div>
+                  <h1 className="text-2xl font-bold text-white">{assignment.title}</h1>
+                  <p className="text-slate-400">Student: {submission.student_name || submission.student_email}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-white">{grade}/{assignment.points}</div>
+                <div className="text-sm text-slate-400">points</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-6 text-sm text-slate-400">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>Due: {assignment.due_at ? new Date(assignment.due_at).toLocaleDateString() : 'No due date'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span>Submitted: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="capitalize">{assignment.type?.replace('_', ' ')}</span>
+              </div>
+            </div>
+          </GlassCard>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
+          {/* Main Content Area */}
           <div className="lg:col-span-2 space-y-6">
-
-            {/* Assignment Details */}
+            
+            {/* Assignment Instructions */}
             <GlassCard className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <FileText className="h-5 w-5 text-blue-400" />
-                <h2 className="text-xl font-semibold text-white">{assignment.title}</h2>
+                <BookOpen className="h-5 w-5 text-blue-400" />
+                <h2 className="text-xl font-semibold text-white">Assignment Instructions</h2>
               </div>
-              <p className="text-slate-300 mb-4">{assignment.description}</p>
-              
-              <div className="flex items-center gap-6 text-sm text-slate-400">
-                <div className="flex items-center gap-2">
-                  <Award className="h-4 w-4" />
-                  <span>{assignment.points} points</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="capitalize">{assignment.type?.replace('_', ' ')}</span>
-                </div>
-              </div>
-            </GlassCard>
-
-            {/* Instructions */}
-            <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Instructions</h3>
               <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                <p className="text-slate-300 whitespace-pre-wrap">{assignment.description || "No specific instructions provided."}</p>
+                <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                     dangerouslySetInnerHTML={{ __html: assignment.description || "No specific instructions provided." }} />
               </div>
             </GlassCard>
 
             {/* Student Response */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Student Response</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <Edit className="h-5 w-5 text-green-400" />
+                <h2 className="text-xl font-semibold text-white">Student Response</h2>
+              </div>
               
-              {submission.response ? (
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <h4 className="font-medium text-white mb-2">Student Response</h4>
-                  <p className="text-slate-300 whitespace-pre-wrap">{submission.response}</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Essay Content */}
-                  {submission.essay_content && submission.essay_content.trim() && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Essay Response</h4>
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                             dangerouslySetInnerHTML={{ __html: submission.essay_content }} />
-                      </div>
+              <div className="space-y-4">
+                {/* Essay Content */}
+                {submission.essay_content && submission.essay_content.trim() && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-blue-400" />
+                      Essay Response
+                    </h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                           dangerouslySetInnerHTML={{ __html: submission.essay_content }} />
                     </div>
-                  )}
-                  
-                  {/* Project Content */}
-                  {submission.project_description && submission.project_description.trim() && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Project Description</h4>
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                             dangerouslySetInnerHTML={{ __html: submission.project_description }} />
-                      </div>
+                  </div>
+                )}
+                
+                {/* Project Content */}
+                {submission.project_description && submission.project_description.trim() && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <Target className="h-4 w-4 text-purple-400" />
+                      Project Description
+                    </h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                           dangerouslySetInnerHTML={{ __html: submission.project_description }} />
                     </div>
-                  )}
-                  
-                  {/* Discussion Content */}
-                  {submission.discussion_response && submission.discussion_response.trim() && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Discussion Response</h4>
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                             dangerouslySetInnerHTML={{ __html: submission.discussion_response }} />
-                      </div>
+                  </div>
+                )}
+                
+                {/* Discussion Content */}
+                {submission.discussion_response && submission.discussion_response.trim() && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-orange-400" />
+                      Discussion Response
+                    </h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                           dangerouslySetInnerHTML={{ __html: submission.discussion_response }} />
                     </div>
-                  )}
-                  
-                  {/* Quiz Content */}
-                  {submission.quiz_answers && assignment?.settings?.quiz_questions && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Quiz Response</h4>
+                  </div>
+                )}
+                
+                {/* Quiz Content */}
+                {submission.quiz_answers && assignment?.settings?.quiz_questions && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <HelpCircle className="h-4 w-4 text-green-400" />
+                      Quiz Response
+                    </h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <QuizViewer
                         questions={assignment.settings.quiz_questions}
                         submission={submission.quiz_answers}
                         isTeacherView={true}
                       />
                     </div>
-                  )}
-                  
-                  {/* Code Submission */}
-                  {submission.code_submission && submission.code_submission.trim() && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Code Submission</h4>
-                      <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                        <CodeViewer 
-                          code={submission.code_submission}
-                          language="javascript"
-                          readOnly={true}
-                        />
-                      </div>
+                  </div>
+                )}
+                
+                {/* Code Submission */}
+                {submission.code_submission && submission.code_submission.trim() && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <Code className="h-4 w-4 text-cyan-400" />
+                      Code Submission
+                    </h4>
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <CodeViewer 
+                        code={submission.code_submission}
+                        language="javascript"
+                        readOnly={true}
+                      />
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Peer Review Content */}
-                  {submission.peer_review_content && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Peer Review</h4>
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                             dangerouslySetInnerHTML={{ __html: submission.peer_review_content }} />
-                      </div>
+                {/* Peer Review Content */}
+                {submission.peer_review_content && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4 text-yellow-400" />
+                      Peer Review
+                    </h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                           dangerouslySetInnerHTML={{ __html: submission.peer_review_content }} />
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Presentation Content */}
-                  {submission.presentation_notes && submission.presentation_notes.trim() && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Presentation Notes</h4>
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                        <div 
-                          className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
-                          dangerouslySetInnerHTML={{ __html: submission.presentation_notes }}
-                        />
-                      </div>
+                {/* Presentation Content */}
+                {submission.presentation_notes && submission.presentation_notes.trim() && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <Presentation className="h-4 w-4 text-pink-400" />
+                      Presentation Notes
+                    </h4>
+                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                      <div 
+                        className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: submission.presentation_notes }}
+                      />
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Uploaded Files */}
-                  {submission.uploaded_files && Array.isArray(submission.uploaded_files) && submission.uploaded_files.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-white mb-2">Uploaded Files</h4>
-                      <div className="space-y-2">
-                        {submission.uploaded_files.map((file: any, index: number) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <FileText className="h-4 w-4 text-slate-400" />
-                              <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-slate-400 hover:text-white"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                {/* Uploaded Files */}
+                {submission.uploaded_files && Array.isArray(submission.uploaded_files) && submission.uploaded_files.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-white mb-3 flex items-center gap-2">
+                      <Upload className="h-4 w-4 text-indigo-400" />
+                      Uploaded Files
+                    </h4>
+                    <div className="space-y-2">
+                      {submission.uploaded_files.map((file: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <File className="h-4 w-4 text-slate-400" />
+                            <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
                           </div>
-                        ))}
-                      </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* No content fallback */}
-                  {!submission.essay_content && !submission.project_description && !submission.discussion_response && 
-                   !submission.quiz_answers && !submission.code_submission && !submission.peer_review_content && 
-                   !submission.presentation_notes && (!submission.uploaded_files || submission.uploaded_files.length === 0) && (
-                    <div className="text-center text-slate-400 py-8">
-                      <FileText className="h-12 w-12 mx-auto mb-4" />
-                      <p>No response provided</p>
-                    </div>
-                  )}
-                </div>
-              )}
+                {/* No content fallback */}
+                {!submission.essay_content && !submission.project_description && !submission.discussion_response && 
+                 !submission.quiz_answers && !submission.code_submission && !submission.peer_review_content && 
+                 !submission.presentation_notes && (!submission.uploaded_files || submission.uploaded_files.length === 0) && (
+                  <div className="text-center text-slate-400 py-12">
+                    <FileText className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">No response provided</p>
+                    <p className="text-sm">The student hasn't submitted any content yet.</p>
+                  </div>
+                )}
+              </div>
             </GlassCard>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-
-            {/* Actions Panel */}
+            
+            {/* Grading Panel */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <Award className="h-5 w-5 text-yellow-400" />
+                <h3 className="text-lg font-semibold text-white">Grading</h3>
+              </div>
               
               <div className="space-y-4">
                 <div>
@@ -348,6 +451,7 @@ export default function TeacherSubmissionDetailPage() {
                     value={grade}
                     onChange={(e) => setGrade(Number(e.target.value))}
                     className="bg-white/5 border-white/10 text-white"
+                    placeholder="Enter grade"
                   />
                 </div>
                 
@@ -358,8 +462,8 @@ export default function TeacherSubmissionDetailPage() {
                   <Textarea
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
-                    placeholder="Provide feedback for the student..."
-                    className="bg-white/5 border-white/10 text-white min-h-[100px]"
+                    placeholder="Provide detailed feedback for the student..."
+                    className="bg-white/5 border-white/10 text-white min-h-[120px]"
                   />
                 </div>
                 
@@ -378,10 +482,10 @@ export default function TeacherSubmissionDetailPage() {
                 
                 <Button
                   onClick={handleGradeSubmission}
-                  disabled={grading}
+                  disabled={isGrading}
                   className="w-full bg-blue-600/80 hover:bg-blue-600 text-white"
                 >
-                  {grading ? (
+                  {isGrading ? (
                     <>
                       <Save className="h-4 w-4 mr-2 animate-spin" />
                       Grading...
@@ -396,18 +500,21 @@ export default function TeacherSubmissionDetailPage() {
               </div>
             </GlassCard>
 
-            {/* Settings Panel */}
+            {/* Submission Details */}
             <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
+              <div className="flex items-center gap-3 mb-4">
+                <Settings className="h-5 w-5 text-slate-400" />
+                <h3 className="text-lg font-semibold text-white">Submission Details</h3>
+              </div>
               
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300">Student:</span>
-                  <span className="text-white">{submission.student_name || submission.student_email}</span>
+                  <span className="text-white font-medium">{submission.student_name || submission.student_email}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300">Attempt:</span>
-                  <span className="text-white">{submission.attempt_number}</span>
+                  <span className="text-white">#{submission.attempt_number}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-300">Submitted:</span>
@@ -427,10 +534,40 @@ export default function TeacherSubmissionDetailPage() {
                 
                 {assignment.due_at && submission.submitted_at && new Date(submission.submitted_at) > new Date(assignment.due_at) && (
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-300">Late Penalty:</span>
-                    <span className="text-red-400">10%</span>
+                    <span className="text-slate-300">Status:</span>
+                    <span className="text-red-400 font-medium">Late Submission</span>
                   </div>
                 )}
+              </div>
+            </GlassCard>
+
+            {/* Quick Actions */}
+            <GlassCard className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <BarChart3 className="h-5 w-5 text-blue-400" />
+                <h3 className="text-lg font-semibold text-white">Quick Actions</h3>
+              </div>
+              
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-slate-300 border-slate-600 hover:bg-slate-700"
+                  onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Assignment
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start text-slate-300 border-slate-600 hover:bg-slate-700"
+                  onClick={() => window.print()}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Print Submission
+                </Button>
               </div>
             </GlassCard>
           </div>
