@@ -108,6 +108,9 @@ export default function StudentAssignmentWorkspacePage() {
   useEffect(() => {
     const submission = studentSubmission || currentSubmission
     if (submission?.content) {
+      console.log('🔍 Loading submission content:', submission.content);
+      console.log('🔍 Essay from submission:', submission.content.essay);
+      
       setContent({
         essay: submission.content.essay || '',
         file_upload: submission.content.file_upload || [],
@@ -238,11 +241,17 @@ export default function StudentAssignmentWorkspacePage() {
     
     setSubmitting(true)
     try {
+      // Debug: Log the content being submitted
+      console.log('🔍 Submitting content:', content);
+      console.log('🔍 Essay content:', content.essay);
+      
       const submissionData = {
         assignment_id: assignmentId,
         content,
         response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
+      
+      console.log('🔍 Submission data:', submissionData);
       
       const existingSubmission = studentSubmission || currentSubmission
       if (existingSubmission) {
