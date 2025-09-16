@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { 
   Bold, 
@@ -36,13 +36,26 @@ export function RichTextEditor({
   className = ""
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [isFocused, setIsFocused] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
+  // Only set initial content, don't update on every value change
   useEffect(() => {
-    if (editorRef.current && !readOnly) {
-      editorRef.current.innerHTML = value
+    if (editorRef.current && !readOnly && !isInitialized) {
+      editorRef.current.innerHTML = value || ''
+      setIsInitialized(true)
     }
-  }, [value, readOnly])
+  }, [value, readOnly, isInitialized])
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   const execCommand = (command: string, value?: string) => {
     if (readOnly) return
@@ -51,11 +64,25 @@ export function RichTextEditor({
     updateValue()
   }
 
-  const updateValue = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML)
+  const updateValue = useCallback(() => {
+    if (editorRef.current && !readOnly) {
+      const newValue = editorRef.current.innerHTML
+      // Only call onChange if the value actually changed
+      if (newValue !== value) {
+        onChange(newValue)
+      }
     }
-  }
+  }, [onChange, value, readOnly])
+
+  // Debounced version for typing
+  const debouncedUpdateValue = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    timeoutRef.current = setTimeout(() => {
+      updateValue()
+    }, 100)
+  }, [updateValue])
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
@@ -129,7 +156,7 @@ export function RichTextEditor({
       <div
         ref={editorRef}
         contentEditable={!readOnly}
-        onInput={updateValue}
+        onInput={debouncedUpdateValue}
         onPaste={handlePaste}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
