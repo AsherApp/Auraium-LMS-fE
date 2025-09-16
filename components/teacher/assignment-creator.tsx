@@ -1031,6 +1031,7 @@ export function AssignmentCreator({ scope, scopeLabel, courseId: propCourseId, o
         )}
 
         {/* Form Actions */}
+        {!isReadOnly && (
           <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-white/10">
             <Button
               type="button"

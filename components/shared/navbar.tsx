@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useAuthStore } from "@/store/auth-store"
 import { AuthModal } from "@/components/auth/auth-modal"
 import { Button } from "@/components/ui/button"
-import { LogOut, User, Settings, Bell } from "lucide-react"
+import { LogOut, User, Bell } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useNotificationStore } from "@/store/notification-store"
 
@@ -23,7 +23,7 @@ export function Navbar() {
     <div className="flex w-full items-center justify-between">
       <div className="flex items-center gap-6">
         <Link href="/" className="text-white font-semibold text-lg flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
             <span className="text-white font-bold text-sm">A</span>
           </div>
           AuraiumLMS
@@ -33,14 +33,9 @@ export function Navbar() {
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <Link href={`/${user.role}/profile`}>
-              <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white">
-                <User className="h-4 w-4" />
-              </Button>
-            </Link>
             <Link href={`/${user.role}/settings`}>
               <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white">
-                <Settings className="h-4 w-4" />
+                <User className="h-4 w-4" />
               </Button>
             </Link>
             <div className="flex items-center gap-3">
@@ -65,7 +60,7 @@ export function Navbar() {
             </div>
           </>
         ) : (
-          <AuthModal label="Get Started" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium" />
+          <AuthModal label="Get Started" className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium" />
         )}
       </div>
     </div>

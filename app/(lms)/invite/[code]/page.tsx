@@ -197,7 +197,7 @@ export default function InvitePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <GlassCard className="p-8">
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
@@ -210,14 +210,14 @@ export default function InvitePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <GlassCard className="p-8">
           <div className="text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-red-400 mx-auto" />
             <h2 className="text-xl font-semibold text-white">Invalid Invite</h2>
             <p className="text-slate-300">{error}</p>
-            <Button onClick={() => router.push('/login')} className="bg-blue-600/80 hover:bg-blue-600">
-              Go to Login
+            <Button onClick={() => router.push('/')} className="bg-blue-600/80 hover:bg-blue-600">
+              Go to Home
             </Button>
           </div>
         </GlassCard>
@@ -227,14 +227,14 @@ export default function InvitePage() {
 
   if (!invite) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <GlassCard className="p-8">
           <div className="text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-red-400 mx-auto" />
             <h2 className="text-xl font-semibold text-white">Invite Not Found</h2>
             <p className="text-slate-300">This invite link is invalid or has expired.</p>
-            <Button onClick={() => router.push('/login')} className="bg-blue-600/80 hover:bg-blue-600">
-              Go to Login
+            <Button onClick={() => router.push('/')} className="bg-blue-600/80 hover:bg-blue-600">
+              Go to Home
             </Button>
           </div>
         </GlassCard>
@@ -244,14 +244,14 @@ export default function InvitePage() {
 
   if (invite.used) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         <GlassCard className="p-8">
           <div className="text-center space-y-4">
             <CheckCircle className="h-12 w-12 text-green-400 mx-auto" />
             <h2 className="text-xl font-semibold text-white">Invite Already Used</h2>
             <p className="text-slate-300">This invite has already been used to create an account.</p>
-            <Button onClick={() => router.push('/login')} className="bg-blue-600/80 hover:bg-blue-600">
-              Go to Login
+            <Button onClick={() => router.push('/')} className="bg-blue-600/80 hover:bg-blue-600">
+              Go to Home
             </Button>
           </div>
         </GlassCard>
@@ -260,7 +260,7 @@ export default function InvitePage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
       <GlassCard className="p-8 max-w-md w-full">
                   <div className="text-center space-y-6">
             <div className="space-y-2">
@@ -302,7 +302,7 @@ export default function InvitePage() {
             
             <Button 
               variant="secondary" 
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/')}
               className="w-full bg-white/10 text-white hover:bg-white/20"
             >
               Already have an account? Login
@@ -734,7 +734,7 @@ export default function InvitePage() {
                     router.push('/student/dashboard')
                   } else {
                     // Not logged in, redirect to login page
-                    router.push('/login')
+                    router.push('/')
                   }
                 }}
                 className="bg-blue-600/80 hover:bg-blue-600"
