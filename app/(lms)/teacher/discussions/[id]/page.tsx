@@ -39,12 +39,11 @@ interface Discussion {
   is_locked: boolean
   allow_student_posts: boolean
   require_approval: boolean
+  is_active: boolean
   created_at: string
   updated_at: string
   posts_count?: number
-  courses?: {
-    title: string
-  }
+  course_title?: string
 }
 
 interface DiscussionPost {
@@ -212,7 +211,7 @@ export default function DiscussionDetailPage() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-white">{discussion.title}</h1>
-            <p className="text-slate-400">{discussion.courses?.title}</p>
+            <p className="text-slate-400">{discussion.course_title}</p>
           </div>
         </div>
         

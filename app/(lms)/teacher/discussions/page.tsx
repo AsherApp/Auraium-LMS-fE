@@ -51,12 +51,11 @@ interface Discussion {
   is_locked: boolean
   allow_student_posts: boolean
   require_approval: boolean
+  is_active: boolean
   created_at: string
   updated_at: string
   posts_count?: number
-  courses?: {
-    title: string
-  }
+  course_title?: string
 }
 
 interface Announcement {
@@ -66,9 +65,7 @@ interface Announcement {
   course_id: string
   priority: string
   created_at: string
-  courses?: {
-    title: string
-  }
+  course_title?: string
 }
 
 interface Course {
@@ -476,10 +473,10 @@ function TeacherDiscussionsPage() {
                       <p className="text-slate-300 mb-3">{discussion.description}</p>
                       
                       <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
-                        {discussion.courses?.title && (
+                        {discussion.course_title && (
                           <div className="flex items-center gap-1">
                             <BookOpen className="h-3 w-3" />
-                            {discussion.courses.title}
+                            {discussion.course_title}
                           </div>
                         )}
                         <div className="flex items-center gap-1">
@@ -550,10 +547,10 @@ function TeacherDiscussionsPage() {
                       <p className="text-slate-300 mb-3">{announcement.message}</p>
                       
                       <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
-                        {announcement.courses?.title && (
+                        {announcement.course_title && (
                           <div className="flex items-center gap-1">
                             <BookOpen className="h-3 w-3" />
-                            {announcement.courses.title}
+                            {announcement.course_title}
                           </div>
                         )}
                         <div className="flex items-center gap-1">

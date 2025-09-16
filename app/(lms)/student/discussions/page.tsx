@@ -44,12 +44,11 @@ interface Discussion {
   is_locked: boolean
   allow_student_posts: boolean
   require_approval: boolean
+  is_active: boolean
   created_at: string
   updated_at: string
   posts_count?: number
-  courses?: {
-    title: string
-  }
+  course_title?: string
 }
 
 interface Announcement {
@@ -59,14 +58,8 @@ interface Announcement {
   course_id: string
   priority: string
   created_at: string
-  courses?: {
-    title: string
-  }
-  teachers?: {
-    name: string
-    first_name?: string
-    last_name?: string
-  }
+  course_title?: string
+  teacher_name?: string
 }
 
 interface Course {
