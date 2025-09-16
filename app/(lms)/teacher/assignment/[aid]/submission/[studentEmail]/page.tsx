@@ -36,8 +36,8 @@ export default function TeacherSubmissionDetailPage() {
   const { toast } = useToast()
   
   // Extract parameters from the URL
-  const assignmentId = params.aid as string
-  const submissionId = params.studentEmail as string // This is actually submission ID
+  const assignmentId = params?.aid as string
+  const submissionId = params?.studentEmail as string // This is actually submission ID
   
   const { assignment, loading: assignmentLoading } = useAssignment(assignmentId)
   const { submission, loading: submissionLoading, error: submissionError } = useSubmission(submissionId)
@@ -148,268 +148,294 @@ export default function TeacherSubmissionDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <GlassCard className="p-6">
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
-                className="text-slate-400 hover:text-white"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Assignment
-              </Button>
-            </div>
-            <h1 className="text-2xl font-bold text-white mb-2">{assignment.title}</h1>
-            <p className="text-slate-300 mb-4">{assignment.description}</p>
-            
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-300">Student:</span>
-                <span className="text-white">{submission.student_name || submission.student_email}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-300">Status:</span>
-                {getStatusBadge(submission.status)}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-300">Attempt:</span>
-                <span className="text-white">{submission.attempt_number}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </GlassCard>
-
-      {/* Submission Content */}
-      <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Student Response</h3>
-        
-        {submission.response ? (
-          <div className="space-y-4">
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-              <h4 className="font-medium text-white mb-2">Student Response</h4>
-              <p className="text-slate-300 whitespace-pre-wrap">{submission.response}</p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Essay Content */}
-            {submission.essay_content && submission.essay_content.trim() && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Essay Response</h4>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                       dangerouslySetInnerHTML={{ __html: submission.essay_content }} />
-                </div>
-              </div>
-            )}
-            
-            {/* Project Content */}
-            {submission.project_description && submission.project_description.trim() && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Project Description</h4>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                       dangerouslySetInnerHTML={{ __html: submission.project_description }} />
-                </div>
-              </div>
-            )}
-            
-            {/* Discussion Content */}
-            {submission.discussion_response && submission.discussion_response.trim() && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Discussion Response</h4>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                       dangerouslySetInnerHTML={{ __html: submission.discussion_response }} />
-                </div>
-              </div>
-            )}
-            
-            {/* Quiz Content */}
-            {submission.quiz_answers && assignment?.settings?.quiz_questions && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Quiz Response</h4>
-                <QuizViewer
-                  questions={assignment.settings.quiz_questions}
-                  submission={submission.quiz_answers}
-                  showResults={true}
-                  isTeacherView={true}
-                />
-              </div>
-            )}
-            
-            {/* Code Submission */}
-            {submission.code_submission && submission.code_submission.trim() && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Code Submission</h4>
-                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                  <CodeViewer 
-                    code={submission.code_submission}
-                    language="javascript"
-                    readOnly={true}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Peer Review Content */}
-            {submission.peer_review_content && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Peer Review</h4>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                       dangerouslySetInnerHTML={{ __html: submission.peer_review_content }} />
-                </div>
-              </div>
-            )}
-
-            {/* Presentation Content */}
-            {submission.presentation_notes && submission.presentation_notes.trim() && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Presentation Notes</h4>
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <div 
-                    className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: submission.presentation_notes }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Uploaded Files */}
-            {submission.uploaded_files && Array.isArray(submission.uploaded_files) && submission.uploaded_files.length > 0 && (
-              <div>
-                <h4 className="font-medium text-white mb-2">Uploaded Files</h4>
-                <div className="space-y-2">
-                  {submission.uploaded_files.map((file: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-slate-400 hover:text-white"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* No content fallback */}
-            {!submission.essay_content && !submission.project_description && !submission.discussion_response && 
-             !submission.quiz_answers && !submission.code_submission && !submission.peer_review_content && 
-             !submission.presentation_notes && (!submission.uploaded_files || submission.uploaded_files.length === 0) && (
-              <div className="text-center text-slate-400 py-8">
-                <FileText className="h-12 w-12 mx-auto mb-4" />
-                <p>No response provided</p>
-              </div>
-            )}
-          </div>
-        )}
-      </GlassCard>
-
-      {/* Grading Section */}
-      <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Grade & Feedback</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Grade (out of {assignment.points})
-            </label>
-            <Input
-              type="number"
-              min="0"
-              max={assignment.points}
-              value={grade}
-              onChange={(e) => setGrade(Number(e.target.value))}
-              className="bg-white/5 border-white/10 text-white"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Feedback
-            </label>
-            <Textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Provide feedback for the student..."
-              className="bg-white/5 border-white/10 text-white min-h-[120px]"
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="requestResubmission"
-              checked={requestResubmission}
-              onChange={(e) => setRequestResubmission(e.target.checked)}
-              className="rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="requestResubmission" className="text-sm text-slate-300">
-              Request resubmission
-            </label>
-          </div>
-          
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <Button
-            onClick={handleGradeSubmission}
-            disabled={grading}
-            className="bg-blue-600/80 hover:bg-blue-600 text-white"
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
+            className="text-slate-400 hover:text-white"
           >
-            {grading ? (
-              <>
-                <Save className="h-4 w-4 mr-2 animate-spin" />
-                Grading...
-              </>
-            ) : (
-              <>
-                <Award className="h-4 w-4 mr-2" />
-                {requestResubmission ? 'Return for Resubmission' : 'Submit Grade'}
-              </>
-            )}
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Assignment
           </Button>
+          <div className="flex items-center gap-3">
+            {getStatusBadge(submission.status)}
+          </div>
         </div>
-      </GlassCard>
 
-      {/* Assignment Details */}
-      <GlassCard className="p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Assignment Details</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-slate-300">Points:</span>
-            <span className="text-white">{assignment.points}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Assignment Details */}
+            <GlassCard className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <FileText className="h-5 w-5 text-blue-400" />
+                <h2 className="text-xl font-semibold text-white">{assignment.title}</h2>
+              </div>
+              <p className="text-slate-300 mb-4">{assignment.description}</p>
+              
+              <div className="flex items-center gap-6 text-sm text-slate-400">
+                <div className="flex items-center gap-2">
+                  <Award className="h-4 w-4" />
+                  <span>{assignment.points} points</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="capitalize">{assignment.type?.replace('_', ' ')}</span>
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* Instructions */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Instructions</h3>
+              <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                <p className="text-slate-300 whitespace-pre-wrap">{assignment.description || "No specific instructions provided."}</p>
+              </div>
+            </GlassCard>
+
+            {/* Student Response */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Student Response</h3>
+              
+              {submission.response ? (
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <h4 className="font-medium text-white mb-2">Student Response</h4>
+                  <p className="text-slate-300 whitespace-pre-wrap">{submission.response}</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Essay Content */}
+                  {submission.essay_content && submission.essay_content.trim() && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Essay Response</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                             dangerouslySetInnerHTML={{ __html: submission.essay_content }} />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Project Content */}
+                  {submission.project_description && submission.project_description.trim() && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Project Description</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                             dangerouslySetInnerHTML={{ __html: submission.project_description }} />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Discussion Content */}
+                  {submission.discussion_response && submission.discussion_response.trim() && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Discussion Response</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                             dangerouslySetInnerHTML={{ __html: submission.discussion_response }} />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Quiz Content */}
+                  {submission.quiz_answers && assignment?.settings?.quiz_questions && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Quiz Response</h4>
+                      <QuizViewer
+                        questions={assignment.settings.quiz_questions}
+                        submission={submission.quiz_answers}
+                        isTeacherView={true}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Code Submission */}
+                  {submission.code_submission && submission.code_submission.trim() && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Code Submission</h4>
+                      <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                        <CodeViewer 
+                          code={submission.code_submission}
+                          language="javascript"
+                          readOnly={true}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Peer Review Content */}
+                  {submission.peer_review_content && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Peer Review</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                             dangerouslySetInnerHTML={{ __html: submission.peer_review_content }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Presentation Content */}
+                  {submission.presentation_notes && submission.presentation_notes.trim() && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Presentation Notes</h4>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                        <div 
+                          className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                          dangerouslySetInnerHTML={{ __html: submission.presentation_notes }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Uploaded Files */}
+                  {submission.uploaded_files && Array.isArray(submission.uploaded_files) && submission.uploaded_files.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-white mb-2">Uploaded Files</h4>
+                      <div className="space-y-2">
+                        {submission.uploaded_files.map((file: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-4 w-4 text-slate-400" />
+                              <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-slate-400 hover:text-white"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No content fallback */}
+                  {!submission.essay_content && !submission.project_description && !submission.discussion_response && 
+                   !submission.quiz_answers && !submission.code_submission && !submission.peer_review_content && 
+                   !submission.presentation_notes && (!submission.uploaded_files || submission.uploaded_files.length === 0) && (
+                    <div className="text-center text-slate-400 py-8">
+                      <FileText className="h-12 w-12 mx-auto mb-4" />
+                      <p>No response provided</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </GlassCard>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-slate-300">Type:</span>
-            <span className="text-white capitalize">{assignment.type?.replace('_', ' ')}</span>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+
+            {/* Actions Panel */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Actions</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Grade (out of {assignment.points})
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max={assignment.points}
+                    value={grade}
+                    onChange={(e) => setGrade(Number(e.target.value))}
+                    className="bg-white/5 border-white/10 text-white"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Feedback
+                  </label>
+                  <Textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Provide feedback for the student..."
+                    className="bg-white/5 border-white/10 text-white min-h-[100px]"
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="requestResubmission"
+                    checked={requestResubmission}
+                    onChange={(e) => setRequestResubmission(e.target.checked)}
+                    className="rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="requestResubmission" className="text-sm text-slate-300">
+                    Request resubmission
+                  </label>
+                </div>
+                
+                <Button
+                  onClick={handleGradeSubmission}
+                  disabled={grading}
+                  className="w-full bg-blue-600/80 hover:bg-blue-600 text-white"
+                >
+                  {grading ? (
+                    <>
+                      <Save className="h-4 w-4 mr-2 animate-spin" />
+                      Grading...
+                    </>
+                  ) : (
+                    <>
+                      <Award className="h-4 w-4 mr-2" />
+                      {requestResubmission ? 'Return for Resubmission' : 'Submit Grade'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </GlassCard>
+
+            {/* Settings Panel */}
+            <GlassCard className="p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
+              
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Student:</span>
+                  <span className="text-white">{submission.student_name || submission.student_email}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Attempt:</span>
+                  <span className="text-white">{submission.attempt_number}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Submitted:</span>
+                  <span className="text-white">{submission.submitted_at ? new Date(submission.submitted_at).toLocaleDateString() : 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-300">Time:</span>
+                  <span className="text-white">{submission.submitted_at ? new Date(submission.submitted_at).toLocaleTimeString() : 'N/A'}</span>
+                </div>
+                
+                {assignment.due_at && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">Due Date:</span>
+                    <span className="text-white">{new Date(assignment.due_at).toLocaleDateString()}</span>
+                  </div>
+                )}
+                
+                {assignment.due_at && submission.submitted_at && new Date(submission.submitted_at) > new Date(assignment.due_at) && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">Late Penalty:</span>
+                    <span className="text-red-400">10%</span>
+                  </div>
+                )}
+              </div>
+            </GlassCard>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-slate-300">Submitted:</span>
-            <span className="text-white">{new Date(submission.submitted_at).toLocaleString()}</span>
-          </div>
-          
-          {assignment.due_at && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-slate-400" />
-              <span className="text-slate-300">Due:</span>
-              <span className="text-white">{new Date(assignment.due_at).toLocaleDateString()}</span>
-            </div>
-          )}
         </div>
-      </GlassCard>
+      </div>
     </div>
   )
 }
