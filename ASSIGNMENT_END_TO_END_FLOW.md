@@ -219,18 +219,21 @@ CREATE TYPE submission_status AS ENUM (
 
 ## 🎨 **Frontend Components**
 
-### **Teacher Components**
-- `AssignmentCreator` - Create/edit assignments
-- `AssignmentList` - List all assignments
-- `SubmissionList` - List student submissions
-- `GradingInterface` - Grade individual submissions
-- `AssignmentAnalytics` - Assignment statistics
-
 ### **Student Components**
-- `AssignmentCard` - Display assignment info
-- `SubmissionForm` - Submit assignment content
-- `GradeDisplay` - Show grade and feedback
-- `ResubmissionPrompt` - Handle resubmission requests
+- `StudentAssignmentsPage` - List all student assignments with status
+- `StudentAssignmentDetailPage` - Individual assignment with submission form
+- `useStudentAssignments()` - Hook for fetching student assignments
+- `useStudentAssignment(id)` - Hook for single assignment with submission data
+
+### **Teacher Components**
+- `TeacherAssignmentPage` - Assignment overview with submission list
+- `TeacherSubmissionDetailPage` - Grade individual student submissions
+- `useAssignmentSubmissions(id)` - Hook for fetching assignment submissions
+- `useSubmission(id)` - Hook for single submission data
+
+### **API Services**
+- `StudentAssignmentsAPI` - Clean API for student assignment operations
+- `TeacherSubmissionsAPI` - Clean API for teacher submission operations
 
 ## 🔐 **Access Control**
 
@@ -327,21 +330,34 @@ const assignmentWithComputedFields = {
 
 ## 📝 **Implementation Notes**
 
-### **Key Files**
-- **Backend**: `Endubackend/src/routes/assignments/index.ts`
-- **Frontend**: `app/(lms)/student/course/[id]/assignment/[aid]/page.tsx`
-- **Hooks**: `services/assignments/hook.ts`
-- **API**: `services/assignments/api.ts`
+### **Key Files (Current Working Implementation)**
+- **Backend**: `Endubackend/src/routes/assignments/index.ts` - Assignment endpoints with computed status
+- **Backend**: `Endubackend/src/routes/submissions/index.ts` - Submission management
+- **Student API**: `services/student-assignments/api.ts` - Clean student assignment API
+- **Student Hooks**: `hooks/use-student-assignments.ts` - Student assignment hooks
+- **Teacher API**: `services/teacher-submissions/api.ts` - Clean teacher submission API
+- **Teacher Hooks**: `hooks/use-teacher-submissions.ts` - Teacher submission hooks
+- **Student Pages**: `app/(lms)/student/assignments/page.tsx` - Student assignments list
+- **Student Detail**: `app/(lms)/student/assignment/[id]/page.tsx` - Student assignment detail
+- **Teacher Detail**: `app/(lms)/teacher/assignment/[aid]/submission/[studentEmail]/page.tsx` - Teacher grading
 
 ### **Status Consistency**
-- Always use computed status from backend
-- Never rely on raw database status in frontend
-- Ensure status mapping is consistent across all components
+- Backend computes status: `returned` → `awaiting_response`, `submitted` → `submitted`, `graded` → `graded`
+- Frontend uses computed status from backend API responses
+- Status badges and UI elements use consistent color coding
+- No raw database status used in frontend
 
 ### **Data Flow**
-1. Backend computes status based on submission data
-2. Frontend receives computed status via API
-3. UI components display status using consistent mapping
-4. User actions update status through proper API calls
+1. **Student Flow**: `useStudentAssignments()` → `StudentAssignmentsAPI.getStudentAssignments()` → `/api/assignments`
+2. **Teacher Flow**: `useAssignmentSubmissions(id)` → `TeacherSubmissionsAPI.getAssignmentSubmissions()` → `/api/submissions/assignment/[id]`
+3. **Grading Flow**: `TeacherSubmissionsAPI.gradeSubmission()` → `/api/submissions/[id]/grade`
+4. **Submission Flow**: `StudentAssignmentsAPI.submitAssignment()` → `/api/submissions`
 
-This documentation serves as the definitive reference for the assignment system. Any changes to the flow should be reflected in this document to maintain consistency across the system.
+### **Clean Architecture**
+- **Separation of Concerns**: Student and teacher APIs are separate
+- **Type Safety**: Full TypeScript types throughout
+- **Error Handling**: Proper error states and user feedback
+- **Loading States**: Consistent loading indicators
+- **No Debug Code**: Production-ready, no console.logs or debug displays
+
+This documentation serves as the definitive reference for the assignment system. The implementation is now clean, maintainable, and production-ready.
