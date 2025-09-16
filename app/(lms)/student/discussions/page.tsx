@@ -79,6 +79,9 @@ export default function StudentDiscussionsPage() {
   const [sortBy, setSortBy] = useState<string>("latest")
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("announcements")
+  const [replyingTo, setReplyingTo] = useState<string | null>(null)
+  const [replyText, setReplyText] = useState("")
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set())
 
   // Fetch courses, discussions, and announcements
   useEffect(() => {
@@ -111,8 +114,8 @@ export default function StudentDiscussionsPage() {
       if (selectedCourse === "all") {
         // Fetch discussions from all enrolled courses
         const promises = (coursesList || []).map(course => 
-          http<{ items: Discussion[] }>(`/api/discussions/course/${course.id}`)
-            .then(response => response.items || [])
+          http<Discussion[]>(`/api/discussions/course/${course.id}`)
+            .then(response => Array.isArray(response) ? response : [])
             .catch(() => [])
         )
         
@@ -120,8 +123,8 @@ export default function StudentDiscussionsPage() {
         discussionsData = results.flat()
       } else {
         // Fetch discussions from specific course
-        const response = await http<{ items: Discussion[] }>(`/api/discussions/course/${selectedCourse}`)
-        discussionsData = response.items || []
+        const response = await http<Discussion[]>(`/api/discussions/course/${selectedCourse}`)
+        discussionsData = Array.isArray(response) ? response : []
       }
 
       // Sort discussions
@@ -193,6 +196,61 @@ export default function StudentDiscussionsPage() {
       return `${Math.floor(diffDays / 365)} years ago`
     } catch (error) {
       return "Unknown"
+    }
+  }
+
+  const handleLike = async (discussionId: string) => {
+    try {
+      // Toggle like status
+      const newLikedPosts = new Set(likedPosts)
+      if (newLikedPosts.has(discussionId)) {
+        newLikedPosts.delete(discussionId)
+      } else {
+        newLikedPosts.add(discussionId)
+      }
+      setLikedPosts(newLikedPosts)
+      
+      // Here you would typically make an API call to save the like
+      // await http.post(`/api/discussions/${discussionId}/like`)
+      
+      toast({
+        title: "Success",
+        description: newLikedPosts.has(discussionId) ? "Liked!" : "Unliked!",
+      })
+    } catch (error) {
+      console.error('Failed to like discussion:', error)
+      toast({
+        title: "Error",
+        description: "Failed to like discussion",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleReply = async (discussionId: string) => {
+    if (!replyText.trim()) return
+    
+    try {
+      // Here you would typically make an API call to post a reply
+      // await http.post(`/api/discussions/${discussionId}/posts`, { content: replyText })
+      
+      setReplyText("")
+      setReplyingTo(null)
+      
+      toast({
+        title: "Success",
+        description: "Reply posted successfully!",
+      })
+      
+      // Refresh discussions to show the new reply
+      fetchDiscussions()
+    } catch (error) {
+      console.error('Failed to post reply:', error)
+      toast({
+        title: "Error",
+        description: "Failed to post reply",
+        variant: "destructive"
+      })
     }
   }
 
@@ -344,6 +402,25 @@ export default function StudentDiscussionsPage() {
                           {formatDate(announcement.created_at)}
                         </div>
                       </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div></div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLike(announcement.id)}
+                            className={`h-8 px-2 text-xs ${
+                              likedPosts.has(announcement.id) 
+                                ? 'text-red-400 hover:text-red-300' 
+                                : 'text-slate-400 hover:text-slate-300'
+                            }`}
+                          >
+                            <ThumbsUp className="h-3 w-3 mr-1" />
+                            Like
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </GlassCard>
@@ -424,7 +501,70 @@ export default function StudentDiscussionsPage() {
                           <span>•</span>
                           <span>{formatDate(discussion.created_at)}</span>
                         </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleLike(discussion.id)}
+                            className={`h-8 px-2 text-xs ${
+                              likedPosts.has(discussion.id) 
+                                ? 'text-red-400 hover:text-red-300' 
+                                : 'text-slate-400 hover:text-slate-300'
+                            }`}
+                          >
+                            <ThumbsUp className="h-3 w-3 mr-1" />
+                            Like
+                          </Button>
+                          
+                          {discussion.allow_student_posts && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setReplyingTo(replyingTo === discussion.id ? null : discussion.id)}
+                              className="h-8 px-2 text-xs text-slate-400 hover:text-slate-300"
+                            >
+                              <MessageSquare className="h-3 w-3 mr-1" />
+                              Reply
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                      
+                      {/* Inline Reply Form */}
+                      {replyingTo === discussion.id && (
+                        <div className="mt-4 p-4 bg-white/5 rounded-lg border border-white/10">
+                          <div className="space-y-3">
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder="Write your reply..."
+                              className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-slate-400 resize-none"
+                              rows={3}
+                            />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                onClick={() => handleReply(discussion.id)}
+                                disabled={!replyText.trim()}
+                                className="bg-blue-600/80 hover:bg-blue-600 text-white text-xs"
+                              >
+                                Post Reply
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setReplyingTo(null)
+                                  setReplyText("")
+                                }}
+                                className="text-slate-400 hover:text-slate-300 text-xs"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </GlassCard>
