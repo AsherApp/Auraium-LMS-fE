@@ -6,6 +6,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  serverExternalPackages: [],
+  trailingSlash: false,
+  generateEtags: false,
+  poweredByHeader: false,
 }
 
 export default nextConfig
