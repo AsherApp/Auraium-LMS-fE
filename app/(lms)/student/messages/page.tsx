@@ -30,12 +30,61 @@ export default function StudentMessagesPage() {
     content: "",
     priority: "normal"
   })
+  const [teachers, setTeachers] = useState<Array<{email: string, name: string, course_title: string}>>([])
+  const [loadingTeachers, setLoadingTeachers] = useState(false)
 
   // Use the messages hook
   const { messages, loading, error, sendMessage, toggleStar, toggleArchive, bulkAction, searchMessages } = useMessagesFn(
     user?.email || undefined,
     user?.role || undefined
   )
+
+  // Fetch student's teachers
+  const fetchTeachers = async () => {
+    if (!user?.email || user?.role !== 'student') return
+    
+    try {
+      setLoadingTeachers(true)
+      const response = await fetch('/api/students/me/courses', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) throw new Error('Failed to fetch courses')
+      
+      const data = await response.json()
+      const enrollments = data.items || []
+      
+      // Extract unique teachers from enrolled courses
+      const teacherMap = new Map()
+      enrollments.forEach((enrollment: any) => {
+        if (enrollment.courses?.teacher_email) {
+          const teacherEmail = enrollment.courses.teacher_email
+          if (!teacherMap.has(teacherEmail)) {
+            teacherMap.set(teacherEmail, {
+              email: teacherEmail,
+              name: enrollment.courses.teacher_name || teacherEmail.split('@')[0],
+              course_title: enrollment.courses.title
+            })
+          }
+        }
+      })
+      
+      setTeachers(Array.from(teacherMap.values()))
+    } catch (error) {
+      console.error('Failed to fetch teachers:', error)
+      toast({ title: "Failed to load teachers", variant: "destructive" })
+    } finally {
+      setLoadingTeachers(false)
+    }
+  }
+
+  // Fetch teachers when component mounts
+  useEffect(() => {
+    fetchTeachers()
+  }, [user?.email, user?.role])
 
   // Filter and sort messages
   const filteredMessages = useMemo(() => {
@@ -137,6 +186,18 @@ export default function StudentMessagesPage() {
         toast({ title: "Search failed", description: error.message, variant: "destructive" })
       }
     }
+  }
+
+  const handleReply = (message: any) => {
+    // Pre-fill the compose form with reply details
+    setNewMessage({
+      to: message.from === user?.email ? message.to : message.from,
+      subject: message.subject.startsWith('Re:') ? message.subject : `Re: ${message.subject}`,
+      content: `\n\n--- Original Message ---\nFrom: ${message.from}\nDate: ${new Date(message.created_at).toLocaleString()}\nSubject: ${message.subject}\n\n${message.content}\n\n--- End Original Message ---\n\n`,
+      priority: "normal"
+    })
+    setShowCompose(true)
+    setShowMessageDetails(false)
   }
 
   const getPriorityColor = (priority: string) => {
@@ -355,9 +416,22 @@ export default function StudentMessagesPage() {
                         <p className="text-xs text-slate-400 truncate">{message.content}</p>
                       </div>
                       
-                      <div className="text-xs text-slate-400 text-right">
-                        <div>{new Date(message.created_at).toLocaleDateString()}</div>
-                        <div>{new Date(message.created_at).toLocaleTimeString()}</div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleReply(message)
+                          }}
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                        >
+                          <Reply className="h-3 w-3" />
+                        </Button>
+                        <div className="text-xs text-slate-400 text-right">
+                          <div>{new Date(message.created_at).toLocaleDateString()}</div>
+                          <div>{new Date(message.created_at).toLocaleTimeString()}</div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -381,12 +455,34 @@ export default function StudentMessagesPage() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-white">To *</label>
-              <Input
-                value={newMessage.to}
-                onChange={(e) => setNewMessage(prev => ({ ...prev, to: e.target.value }))}
-                placeholder="Enter email address"
-                className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50"
-              />
+              {loadingTeachers ? (
+                <div className="p-3 bg-white/5 border border-white/10 rounded-md text-slate-400">
+                  Loading teachers...
+                </div>
+              ) : teachers.length > 0 ? (
+                <Select value={newMessage.to} onValueChange={(value) => setNewMessage(prev => ({ ...prev, to: value }))}>
+                  <SelectTrigger className="bg-white/5 border-white/10 text-white focus:border-blue-500/50">
+                    <SelectValue placeholder="Select a teacher" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900/95 text-white border-white/10">
+                    {teachers.map((teacher) => (
+                      <SelectItem key={teacher.email} value={teacher.email}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{teacher.name}</span>
+                          <span className="text-xs text-slate-400">{teacher.course_title}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={newMessage.to}
+                  onChange={(e) => setNewMessage(prev => ({ ...prev, to: e.target.value }))}
+                  placeholder="Enter email address"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-slate-400 focus:border-blue-500/50"
+                />
+              )}
             </div>
             
             <div>
@@ -503,7 +599,7 @@ export default function StudentMessagesPage() {
                   {selectedMessage.is_archived ? 'Unarchive' : 'Archive'}
                 </Button>
                 <Button
-                  onClick={() => setShowCompose(true)}
+                  onClick={() => handleReply(selectedMessage)}
                   className="bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border-blue-500/30"
                 >
                   <Reply className="h-4 w-4 mr-2" />
