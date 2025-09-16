@@ -216,38 +216,34 @@ export default function TeacherSubmissionDetailPage() {
               </div>
             ) : submission.content && Object.keys(submission.content).length > 0 ? (
               <div className="space-y-4">
-                {/* Debug: Show the actual content structure */}
-                <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                  <h4 className="font-medium text-yellow-400 mb-2">Debug: Content Structure</h4>
-                  <pre className="text-xs text-slate-300 overflow-auto">
-                    {JSON.stringify(submission.content, null, 2)}
-                  </pre>
-                </div>
 
                 {/* Handle different content types safely */}
-                {submission.content.essay && typeof submission.content.essay === 'string' && (
+                {submission.content.essay && typeof submission.content.essay === 'string' && submission.content.essay.trim() && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Essay Response</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <p className="text-slate-300 whitespace-pre-wrap">{submission.content.essay}</p>
+                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                           dangerouslySetInnerHTML={{ __html: submission.content.essay }} />
                     </div>
                   </div>
                 )}
                 
-                {submission.content.project && typeof submission.content.project === 'string' && (
+                {submission.content.project && typeof submission.content.project === 'string' && submission.content.project.trim() && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Project Description</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <p className="text-slate-300 whitespace-pre-wrap">{submission.content.project}</p>
+                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                           dangerouslySetInnerHTML={{ __html: submission.content.project }} />
                     </div>
                   </div>
                 )}
                 
-                {submission.content.discussion && typeof submission.content.discussion === 'string' && (
+                {submission.content.discussion && typeof submission.content.discussion === 'string' && submission.content.discussion.trim() && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Discussion Response</h4>
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <p className="text-slate-300 whitespace-pre-wrap">{submission.content.discussion}</p>
+                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                           dangerouslySetInnerHTML={{ __html: submission.content.discussion }} />
                     </div>
                   </div>
                 )}
@@ -264,11 +260,15 @@ export default function TeacherSubmissionDetailPage() {
                   </div>
                 )}
                 
-                {submission.content.code_submission && typeof submission.content.code_submission === 'string' && (
+                {submission.content.code_submission && typeof submission.content.code_submission === 'string' && submission.content.code_submission.trim() && (
                   <div>
                     <h4 className="font-medium text-white mb-2">Code Submission</h4>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <pre className="text-slate-300 whitespace-pre-wrap">{submission.content.code_submission}</pre>
+                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                      <CodeViewer 
+                        code={submission.content.code_submission}
+                        language="javascript"
+                        readOnly={true}
+                      />
                     </div>
                   </div>
                 )}
