@@ -40,10 +40,21 @@ export function NotificationSystem() {
 
   // Fetch real notifications from API
   const fetchNotifications = async () => {
-    if (!user?.email) return
+    if (!user?.email || !user?.role) {
+      console.log('Skipping notification fetch - user not authenticated:', { email: user?.email, role: user?.role })
+      return
+    }
+
+    // Check if we have a valid auth token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null
+    if (!token) {
+      console.log('Skipping notification fetch - no auth token')
+      return
+    }
 
     try {
       setLoading(true)
+      console.log('Fetching notifications for user:', user.email)
       const response = await http<{ items: Notification[] }>(`/api/notifications/me`)
       const fetchedNotifications = response.items || []
       
@@ -94,8 +105,15 @@ export function NotificationSystem() {
       })
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
+      console.error('Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        user: user?.email,
+        apiBase: process.env.NEXT_PUBLIC_API_BASE
+      })
       // Don't show error toast for notification fetching failures
       // as it might be due to network issues or missing API endpoint
+      // Keep existing notifications if API fails
+      console.log('Notification fetch failed, keeping existing notifications')
     } finally {
       setLoading(false)
     }
@@ -138,14 +156,21 @@ export function NotificationSystem() {
 
   // Fetch notifications on mount and set up polling
   useEffect(() => {
-    if (user?.email) {
-      fetchNotifications()
+    if (user?.email && user?.role) {
+      // Add a small delay to ensure user is fully authenticated
+      const timer = setTimeout(() => {
+        fetchNotifications()
+      }, 1000)
       
       // Poll for new notifications every 60 seconds (reduced frequency)
       const interval = setInterval(fetchNotifications, 60000)
-      return () => clearInterval(interval)
+      
+      return () => {
+        clearTimeout(timer)
+        clearInterval(interval)
+      }
     }
-  }, [user?.email]) // Only depend on email, not the entire user object
+  }, [user?.email, user?.role]) // Only depend on email, not the entire user object
 
   // Show toast for new notifications (only for very recent ones)
   useEffect(() => {
