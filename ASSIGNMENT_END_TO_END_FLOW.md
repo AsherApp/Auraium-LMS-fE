@@ -200,11 +200,11 @@ CREATE TYPE submission_status AS ENUM (
 ## 🔌 **API Endpoints**
 
 ### **Assignment Management**
-- `GET /api/assignments` - List assignments (teacher)
-- `GET /api/assignments/[id]` - Get assignment details
-- `POST /api/assignments` - Create assignment (teacher)
-- `PUT /api/assignments/[id]` - Update assignment (teacher)
-- `DELETE /api/assignments/[id]` - Delete assignment (teacher)
+- `GET /api/assignments` - List assignments (teacher: all their assignments, student: all enrolled course assignments)
+- `GET /api/assignments/[id]` - Get assignment details (with student submission data for students)
+- `POST /api/assignments` - Create assignment (teacher only)
+- `PUT /api/assignments/[id]` - Update assignment (teacher only)
+- `DELETE /api/assignments/[id]` - Delete assignment (teacher only)
 
 ### **Submission Management**
 - `GET /api/submissions/assignment/[assignmentId]` - Get submissions for assignment (teacher)
@@ -214,8 +214,9 @@ CREATE TYPE submission_status AS ENUM (
 - `PUT /api/submissions/[submissionId]/grade` - Grade submission (teacher)
 
 ### **Student-Specific Endpoints**
+- `GET /api/assignments` - Get all assignments for enrolled courses (student)
 - `GET /api/assignments/course/[courseId]` - Get course assignments (student)
-- Assignment endpoint includes `student_submission` field for students
+- Assignment endpoints include `student_submission` field for students with computed status
 
 ## 🎨 **Frontend Components**
 
