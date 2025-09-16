@@ -10,6 +10,11 @@ const nextConfig = {
   trailingSlash: false,
   generateEtags: false,
   poweredByHeader: false,
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'localhost:4000'],
+    },
+  },
 }
 
 export default nextConfig
