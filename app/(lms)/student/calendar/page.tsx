@@ -97,10 +97,10 @@ export default function StudentCalendar() {
     try {
       setLoading(true)
       
-      // Fetch both events and live sessions
+      // Fetch both events and live sessions (student-specific endpoints)
       const [eventsResponse, liveSessionsResponse] = await Promise.all([
         http<any>('/api/events').catch(() => ({ items: [] })),
-        http<any>('/api/live').catch(() => ({ items: [] }))
+        http<any>('/api/live/my-sessions').catch(() => ({ items: [] }))
       ])
 
       const events = eventsResponse.items || eventsResponse || []
