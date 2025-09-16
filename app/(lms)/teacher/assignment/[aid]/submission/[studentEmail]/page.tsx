@@ -216,13 +216,6 @@ export default function TeacherSubmissionDetailPage() {
               </div>
             ) : submission.content && Object.keys(submission.content).length > 0 ? (
               <div className="space-y-4">
-                {/* Debug: Show the actual content structure */}
-                <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                  <h4 className="font-medium text-yellow-400 mb-2">Debug: Content Structure</h4>
-                  <pre className="text-xs text-slate-300 overflow-auto">
-                    {JSON.stringify(submission.content, null, 2)}
-                  </pre>
-                </div>
 
                 {/* Handle different content types safely */}
                 {submission.content.essay && typeof submission.content.essay === 'string' && (

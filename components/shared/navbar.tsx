@@ -44,7 +44,7 @@ export function Navbar() {
               </Button>
             </Link>
             <div className="flex items-center gap-3">
-              <span className="text-slate-200 text-sm font-medium px-2">{user.name || user.email}</span>
+              <span className="text-slate-200 text-sm font-medium px-2">{user.full_name || user.name || user.email}</span>
               <Button 
                 variant="ghost" 
                 size="sm" 
