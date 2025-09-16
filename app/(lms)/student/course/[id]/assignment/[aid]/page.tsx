@@ -280,10 +280,62 @@ export default function StudentAssignmentWorkspacePage() {
     if (!files) return
     
     const fileArray = Array.from(files)
-    setContent(prev => ({
-      ...prev,
-      file_upload: [...(prev.file_upload || []), ...fileArray]
-    }))
+    const maxFileSize = assignment?.settings?.max_file_size || 10485760 // 10MB default
+    const allowedTypes = assignment?.settings?.allowed_file_types || ['pdf', 'doc', 'docx', 'txt', 'jpg', 'png', 'zip', 'rar']
+    const maxFiles = assignment?.settings?.max_files || 10
+    
+    // Check file count limit
+    const currentFileCount = content.file_upload?.length || 0
+    if (currentFileCount + fileArray.length > maxFiles) {
+      toast({
+        title: "Too many files",
+        description: `Maximum ${maxFiles} files allowed. You have ${currentFileCount} files and trying to add ${fileArray.length} more.`,
+        variant: "destructive"
+      })
+      return
+    }
+    
+    const validFiles: File[] = []
+    const errors: string[] = []
+    
+    fileArray.forEach(file => {
+      // Check file size
+      if (file.size > maxFileSize) {
+        errors.push(`${file.name}: File too large (max ${formatFileSize(maxFileSize)})`)
+        return
+      }
+      
+      // Check file type
+      const fileExtension = file.name.split('.').pop()?.toLowerCase()
+      if (!fileExtension || !allowedTypes.includes(fileExtension)) {
+        errors.push(`${file.name}: File type not allowed (allowed: ${allowedTypes.join(', ')})`)
+        return
+      }
+      
+      validFiles.push(file)
+    })
+    
+    // Show errors if any
+    if (errors.length > 0) {
+      toast({
+        title: "File upload errors",
+        description: errors.join('\n'),
+        variant: "destructive"
+      })
+    }
+    
+    // Add valid files
+    if (validFiles.length > 0) {
+      setContent(prev => ({
+        ...prev,
+        file_upload: [...(prev.file_upload || []), ...validFiles]
+      }))
+      
+      toast({
+        title: "Files uploaded",
+        description: `${validFiles.length} file(s) added successfully`,
+      })
+    }
   }
 
   const removeFile = (index: number) => {
@@ -434,14 +486,18 @@ export default function StudentAssignmentWorkspacePage() {
               <div className="border-2 border-dashed border-white/20 rounded-lg p-8 text-center hover:border-white/30 transition-colors">
                 <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                 <p className="text-slate-300 mb-2 text-lg">Drag and drop files here or click to browse</p>
-                <p className="text-slate-400 mb-4 text-sm">Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG, ZIP, RAR</p>
+                <div className="text-slate-400 mb-4 text-sm space-y-1">
+                  <p>Supported formats: {assignment?.settings?.allowed_file_types?.join(', ').toUpperCase() || 'PDF, DOC, DOCX, TXT, JPG, PNG, ZIP, RAR'}</p>
+                  <p>Max file size: {formatFileSize(assignment?.settings?.max_file_size || 10485760)}</p>
+                  <p>Max files: {assignment?.settings?.max_files || 10}</p>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
                   onChange={(e) => handleFileUpload(e.target.files)}
                   className="hidden"
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                  accept={assignment?.settings?.allowed_file_types?.map(type => `.${type}`).join(',') || '.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar'}
                 />
                 <Button 
                   variant="outline" 
@@ -633,22 +689,98 @@ export default function StudentAssignmentWorkspacePage() {
       
       case 'project':
         return (
-          <div className="space-y-4">
-            <Label className="text-white">{isReadOnly ? 'Your Submitted Project' : 'Project Description'}</Label>
-            {isReadOnly ? (
-              <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                <div 
-                  className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: content.project || 'No project description available' }}
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-white">{isReadOnly ? 'Your Submitted Project' : 'Project Description'}</Label>
+              {isReadOnly ? (
+                <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                  <div 
+                    className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: content.project || 'No project description available' }}
+                  />
+                </div>
+              ) : (
+                <RichTextEditor
+                  value={content.project}
+                  onChange={(value) => setContent({ ...content, project: value })}
+                  placeholder="Describe your project..."
+                  className="min-h-[400px]"
                 />
+              )}
+            </div>
+            
+            {/* Project Files Section */}
+            {assignment?.settings?.allow_file_uploads && (
+              <div className="space-y-4">
+                <Label className="text-white">{isReadOnly ? 'Project Files' : 'Upload Project Files'}</Label>
+                
+                {!isReadOnly && (
+                  <div className="border-2 border-dashed border-white/20 rounded-lg p-6 text-center hover:border-white/30 transition-colors">
+                    <Upload className="h-8 w-8 text-slate-400 mx-auto mb-3" />
+                    <p className="text-slate-300 mb-2">Upload supporting files for your project</p>
+                    <p className="text-slate-400 mb-3 text-sm">Max {assignment?.settings?.max_files || 3} files</p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      onChange={(e) => handleFileUpload(e.target.files)}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Add Files
+                    </Button>
+                  </div>
+                )}
+
+                {/* Project Files List */}
+                {content.file_upload && content.file_upload.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-white font-medium">Project Files ({content.file_upload.length})</h4>
+                    {content.file_upload.map((file, index) => {
+                      const Icon = getFileIcon(file)
+                      return (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                          <div className="flex items-center gap-3">
+                            <Icon className="h-6 w-6 text-blue-400" />
+                            <div>
+                              <p className="text-white font-medium text-sm">{file.name}</p>
+                              <p className="text-slate-400 text-xs">{formatFileSize(file.size)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!isReadOnly && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile(index)}
+                                className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {isReadOnly && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            ) : (
-              <RichTextEditor
-                value={content.project}
-                onChange={(value) => setContent({ ...content, project: value })}
-                placeholder="Describe your project..."
-                className="min-h-[400px]"
-              />
             )}
           </div>
         )
@@ -707,16 +839,33 @@ export default function StudentAssignmentWorkspacePage() {
                 onChange={(e) => setContent({ ...content, code_submission: e.target.value })}
                 placeholder="Write your code here..."
                 disabled={isReadOnly}
-                className="min-h-[500px] bg-slate-900 border-white/10 text-green-400 font-mono text-sm leading-relaxed"
-                style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace' }}
+                className="min-h-[500px] bg-slate-900 border-white/10 text-green-400 font-mono text-sm leading-relaxed resize-none"
+                style={{ 
+                  fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+                  tabSize: 2
+                }}
+                spellCheck={false}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
               />
-              <div className="absolute top-2 right-2">
+              <div className="absolute top-2 right-2 flex gap-2">
                 <Badge variant="secondary" className="bg-slate-800/80 text-slate-300 border-slate-700">
                   <Code className="h-3 w-3 mr-1" />
                   {isReadOnly ? 'Code Viewer' : 'Code Editor'}
                 </Badge>
+                {!isReadOnly && (
+                  <Badge variant="outline" className="bg-blue-600/20 text-blue-300 border-blue-500/30">
+                    {content.code_submission?.split('\n').length || 1} lines
+                  </Badge>
+                )}
               </div>
             </div>
+            {!isReadOnly && (
+              <div className="text-xs text-slate-400">
+                💡 Tip: Use proper indentation and comments for better code readability
+              </div>
+            )}
           </div>
         )
       
@@ -726,21 +875,35 @@ export default function StudentAssignmentWorkspacePage() {
             <Label className="text-white">{isReadOnly ? 'Your Submitted Peer Review' : 'Peer Review'}</Label>
             {isReadOnly ? (
               <div className="min-h-[400px] bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                <div className="text-slate-300 whitespace-pre-wrap">
-                  {content.peer_review || 'No peer review content available'}
-                </div>
+                <div 
+                  className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: content.peer_review || 'No peer review content available' }}
+                />
               </div>
             ) : (
               <div className="space-y-4">
                 <div>
-                  <Label className="text-sm text-slate-400">Review Criteria</Label>
-                  <Textarea
+                  <Label className="text-sm text-slate-400 mb-2 block">Review Feedback</Label>
+                  <RichTextEditor
                     value={content.peer_review}
-                    onChange={(e) => setContent({ ...content, peer_review: e.target.value })}
+                    onChange={(value) => setContent({ ...content, peer_review: value })}
                     placeholder="Provide your peer review feedback here..."
-                    className="min-h-[300px] bg-slate-900 border-white/10 text-slate-300"
+                    className="min-h-[300px]"
                   />
                 </div>
+                {assignment?.settings?.review_criteria && (
+                  <div className="bg-white/5 p-4 rounded-lg border border-white/10">
+                    <Label className="text-sm text-slate-400 mb-2 block">Review Criteria</Label>
+                    <ul className="text-slate-300 text-sm space-y-1">
+                      {assignment.settings.review_criteria.map((criteria: string, index: number) => (
+                        <li key={index} className="flex items-center gap-2">
+                          <CheckCircle className="h-3 w-3 text-green-400" />
+                          {criteria}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1146,3 +1309,4 @@ export default function StudentAssignmentWorkspacePage() {
     </div>
   )
 }
+
