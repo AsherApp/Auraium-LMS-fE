@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { useAuthStore } from "@/store/auth-store"
-import { useAssignment } from "@/services/assignments/hook"
-import { useSubmissionManagement, useSubmission } from "@/services/submissions/hook"
+import { useAssignment, useMySubmission } from "@/services/assignments/hook"
+import { useSubmissionManagement } from "@/services/submissions/hook"
 import { type Assignment } from "@/services/assignments/api"
 import { type Submission } from "@/services/submissions/api"
 import { RichTextEditor } from "@/components/shared/rich-text-editor"
@@ -60,7 +60,7 @@ export default function StudentAssignmentWorkspacePage() {
   
   const { assignment, loading, error } = useAssignment(assignmentId)
   const { createSubmission, updateSubmission } = useSubmissionManagement()
-  const { submission: studentSubmission, loading: submissionLoading } = useSubmission(assignmentId)
+  const { submission: studentSubmission, loading: submissionLoading } = useMySubmission(assignmentId)
   const [currentSubmission, setCurrentSubmission] = useState<Submission | null>(null)
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -165,7 +165,7 @@ export default function StudentAssignmentWorkspacePage() {
         if (prev === null || prev <= 1) {
           setTimerActive(false)
           // Auto-submit when time runs out
-          if (submission?.status !== 'submitted') {
+          if (assignment?.status !== 'submitted') {
             handleSubmit()
           }
           return 0
@@ -179,7 +179,7 @@ export default function StudentAssignmentWorkspacePage() {
 
   const handleAutoSave = async () => {
     const submission = studentSubmission || currentSubmission
-    if (!assignment || !user?.email || submission?.status === 'submitted') return
+    if (!assignment || !user?.email || assignment?.status === 'submitted') return
     
     setIsAutoSaving(true)
     try {
@@ -360,7 +360,7 @@ export default function StudentAssignmentWorkspacePage() {
   const submission = studentSubmission || currentSubmission
 
   // Check if assignment is read-only (submitted or graded, but not returned for resubmission)
-  const isReadOnly = submission?.status === 'submitted' || submission?.status === 'graded'
+  const isReadOnly = assignment?.status === 'submitted' || assignment?.status === 'graded'
 
   const renderContentEditor = () => {
     if (!assignment) return null
@@ -830,13 +830,13 @@ export default function StudentAssignmentWorkspacePage() {
           )}
           
           {/* Submission status */}
-          {submission?.status === 'submitted' && (
+          {assignment?.status === 'submitted' && (
             <Badge className="bg-blue-600/20 text-blue-300 border-blue-600/30">
               <CheckCircle className="h-3 w-3 mr-1" />
               Submitted
             </Badge>
           )}
-          {submission?.status === 'graded' && (
+          {assignment?.status === 'graded' && (
             <Badge className="bg-green-600/20 text-green-300 border-green-600/30">
               <Award className="h-3 w-3 mr-1" />
               Graded
@@ -964,16 +964,16 @@ export default function StudentAssignmentWorkspacePage() {
                   
                   <Button 
                     onClick={handleSubmit} 
-                    disabled={submitting || submission?.status === 'submitted'}
+                    disabled={submitting || assignment?.status === 'submitted'}
                     className="w-full"
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    {submitting ? 'Submitting...' : submission?.status === 'submitted' ? 'Already Submitted' : 'Submit Assignment'}
+                    {submitting ? 'Submitting...' : assignment?.status === 'submitted' ? 'Already Submitted' : 'Submit Assignment'}
                   </Button>
                 </>
               )}
               
-              {isReadOnly && submission?.status === 'graded' && (
+              {isReadOnly && assignment?.status === 'graded' && (
                 <div className="text-center p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Award className="h-5 w-5 text-green-400" />
@@ -993,7 +993,7 @@ export default function StudentAssignmentWorkspacePage() {
                 </div>
               )}
               
-              {isReadOnly && submission?.status === 'submitted' && (
+              {isReadOnly && assignment?.status === 'submitted' && (
                 <div className="text-center p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <CheckCircle className="h-5 w-5 text-blue-400" />
@@ -1005,7 +1005,7 @@ export default function StudentAssignmentWorkspacePage() {
                 </div>
               )}
               
-              {submission?.status === 'returned' && (
+              {assignment?.status === 'awaiting_response' && (
                 <div className="text-center p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <AlertTriangle className="h-5 w-5 text-orange-400" />

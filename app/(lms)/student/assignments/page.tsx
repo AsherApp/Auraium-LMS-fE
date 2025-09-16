@@ -40,7 +40,7 @@ export default function StudentAssignmentsPage() {
   const [progressData, setProgressData] = useState<any>(null)
   const [progressLoading, setProgressLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "submitted" | "overdue">("all")
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "submitted" | "overdue" | "awaiting_response">("all")
   const [activeTab, setActiveTab] = useState("assignments")
 
   // Process assignments from simplified API
@@ -97,13 +97,16 @@ export default function StudentAssignmentsPage() {
     let matchesFilter = true
     switch (filterStatus) {
       case "pending":
-        matchesFilter = !assignment.is_submitted
+        matchesFilter = !assignment.is_submitted && assignment.status !== 'awaiting_response'
         break
       case "submitted":
-        matchesFilter = !!assignment.is_submitted && !assignment.is_graded
+        matchesFilter = !!assignment.is_submitted && !assignment.is_graded && assignment.status !== 'awaiting_response'
         break
       case "overdue":
         matchesFilter = !!assignment.is_overdue && !assignment.is_submitted
+        break
+      case "awaiting_response":
+        matchesFilter = assignment.status === 'awaiting_response'
         break
       default:
         matchesFilter = true
@@ -115,6 +118,8 @@ export default function StudentAssignmentsPage() {
   const getStatusBadge = (assignment: AssignmentWithSubmission) => {
     if (assignment.is_graded) {
       return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
+    } else if (assignment.status === 'awaiting_response') {
+      return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Awaiting Response</Badge>
     } else if (assignment.is_submitted) {
       return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
     } else if (assignment.is_overdue) {
@@ -219,7 +224,7 @@ export default function StudentAssignmentsPage() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  {["all", "pending", "submitted", "overdue"].map((filter) => (
+                  {["all", "pending", "submitted", "overdue", "awaiting_response"].map((filter) => (
                     <Button
                       key={filter}
                       variant={filterStatus === filter ? "default" : "ghost"}
@@ -227,7 +232,7 @@ export default function StudentAssignmentsPage() {
                       onClick={() => setFilterStatus(filter as any)}
                       className={filterStatus === filter ? "bg-blue-600/80 text-white" : "text-slate-300 hover:text-white hover:bg-white/10"}
                     >
-                      {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      {filter === 'awaiting_response' ? 'Awaiting Response' : filter.charAt(0).toUpperCase() + filter.slice(1)}
                     </Button>
                   ))}
                 </div>
