@@ -1,92 +1,28 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { GlassCard } from "@/components/shared/glass-card"
-import { AnimationWrapper, StaggeredAnimationWrapper } from "@/components/shared/animation-wrapper"
+import { AnimationWrapper } from "@/components/shared/animation-wrapper"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useAuthStore } from "@/store/auth-store"
-import { useSimplifiedAssignments } from "@/hooks/use-simplified-assignments"
-import { type Assignment } from "@/services/assignments/api"
+import { useStudentAssignments } from "@/hooks/use-student-assignments"
 import { 
   ClipboardList, 
   Calendar, 
   CheckCircle, 
   Clock, 
   FileText, 
-  Users, 
   BarChart3,
   Eye,
-  Edit,
-  Settings
+  AlertTriangle
 } from "lucide-react"
 
-type AssignmentWithSubmission = Assignment & {
-  course_title?: string
-  course_description?: string
-}
-
 export default function StudentAssignmentsPage() {
-  const { user } = useAuthStore()
-  const { assignments: allAssignments, loading, error, refreshAssignments } = useSimplifiedAssignments()
-  const [courses, setCourses] = useState<any[]>([])
-  const [assignments, setAssignments] = useState<AssignmentWithSubmission[]>([])
-  const [progressData, setProgressData] = useState<any>(null)
-  const [progressLoading, setProgressLoading] = useState(false)
+  const { assignments, loading, error } = useStudentAssignments()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "submitted" | "overdue" | "awaiting_response">("all")
-  const [activeTab, setActiveTab] = useState("assignments")
-
-  // Process assignments from simplified API
-  useEffect(() => {
-    const processAssignments = () => {
-      if (!allAssignments.length) return
-
-      try {
-        // The simplified API already provides processed assignments with submission data
-        setAssignments(allAssignments)
-      } catch (error) {
-        console.error('Error processing assignments:', error)
-      }
-    }
-
-    processAssignments()
-  }, [allAssignments])
-
-  useEffect(() => {
-    if (activeTab === "progress") {
-      setProgressLoading(true)
-      // Calculate real progress data from assignments
-      const realProgressData = {
-        totalAssignments: assignments.length,
-        completedAssignments: assignments.filter(a => a.is_submitted).length,
-        gradedAssignments: assignments.filter(a => a.is_graded).length,
-        averageGrade: assignments.filter(a => a.student_submission?.grade).length > 0 
-          ? Math.round(assignments.filter(a => a.student_submission?.grade)
-              .reduce((sum, a) => sum + (a.student_submission?.grade || 0), 0) / 
-              assignments.filter(a => a.student_submission?.grade).length)
-          : 0,
-        recentActivity: assignments
-          .filter(a => a.is_submitted)
-          .sort((a, b) => new Date(b.student_submission?.submitted_at || b.created_at).getTime() - new Date(a.student_submission?.submitted_at || a.created_at).getTime())
-          .slice(0, 5)
-          .map(a => ({
-            type: a.is_graded ? 'grade' : 'submission',
-            assignment: a.title,
-            grade: a.student_submission?.grade || null,
-            date: a.student_submission?.submitted_at || a.created_at
-          }))
-      }
-      setProgressData(realProgressData)
-      setProgressLoading(false)
-    }
-  }, [activeTab, assignments])
 
   // Filter assignments
   const filteredAssignments = assignments.filter(assignment => {
@@ -97,13 +33,13 @@ export default function StudentAssignmentsPage() {
     let matchesFilter = true
     switch (filterStatus) {
       case "pending":
-        matchesFilter = !assignment.is_submitted && assignment.status !== 'awaiting_response'
+        matchesFilter = assignment.status === 'not_started'
         break
       case "submitted":
-        matchesFilter = !!assignment.is_submitted && !assignment.is_graded && assignment.status !== 'awaiting_response'
+        matchesFilter = assignment.status === 'submitted'
         break
       case "overdue":
-        matchesFilter = !!assignment.is_overdue && !assignment.is_submitted
+        matchesFilter = assignment.is_overdue && assignment.status !== 'submitted'
         break
       case "awaiting_response":
         matchesFilter = assignment.status === 'awaiting_response'
@@ -115,42 +51,93 @@ export default function StudentAssignmentsPage() {
     return matchesSearch && matchesFilter
   })
 
-  const getStatusBadge = (assignment: AssignmentWithSubmission) => {
-    if (assignment.is_graded) {
-      return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
-    } else if (assignment.status === 'awaiting_response') {
-      return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Awaiting Response</Badge>
-    } else if (assignment.is_submitted) {
-      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
-    } else if (assignment.is_overdue) {
-      return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
-    } else if (!assignment.is_available) {
-      return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">Not Available</Badge>
-    } else {
-      return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
+  // Calculate progress data
+  const progressData = {
+    totalAssignments: assignments.length,
+    completedAssignments: assignments.filter(a => a.is_graded).length,
+    submittedAssignments: assignments.filter(a => a.is_submitted).length,
+    pendingAssignments: assignments.filter(a => a.status === 'not_started').length,
+    awaitingResponse: assignments.filter(a => a.status === 'awaiting_response').length
+  }
+
+  const getStatusBadge = (assignment: any) => {
+    switch (assignment.status) {
+      case 'graded':
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
+      case 'awaiting_response':
+        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Awaiting Response</Badge>
+      case 'submitted':
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
+      case 'not_started':
+        if (assignment.is_overdue) {
+          return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
+        }
+        return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
+      default:
+        return <Badge variant="outline" className="border-slate-500 text-slate-400">Unknown</Badge>
     }
   }
 
   const getAssignmentIcon = (type: string) => {
     switch (type) {
       case 'essay': return <FileText className="h-5 w-5 text-blue-400" />
-      case 'project': return <BarChart3 className="h-5 w-5 text-green-400" />
-      case 'quiz': return <CheckCircle className="h-5 w-5 text-purple-400" />
-      case 'discussion': return <Users className="h-5 w-5 text-orange-400" />
-      case 'presentation': return <Eye className="h-5 w-5 text-indigo-400" />
-      case 'code_submission': return <FileText className="h-5 w-5 text-emerald-400" />
-      case 'peer_review': return <Users className="h-5 w-5 text-pink-400" />
-      case 'file_upload': return <FileText className="h-5 w-5 text-cyan-400" />
+      case 'quiz': return <BarChart3 className="h-5 w-5 text-green-400" />
+      case 'project': return <ClipboardList className="h-5 w-5 text-purple-400" />
       default: return <FileText className="h-5 w-5 text-slate-400" />
+    }
+  }
+
+  const getActionButton = (assignment: any) => {
+    const href = `/student/assignment/${assignment.id}`
+    
+    switch (assignment.status) {
+      case 'graded':
+        return (
+          <Link href={href}>
+            <Button className="w-full bg-green-600/20 text-green-300 border-green-600/30 hover:bg-green-600/30">
+              <Eye className="h-4 w-4 mr-2" />
+              View Result
+            </Button>
+          </Link>
+        )
+      case 'awaiting_response':
+        return (
+          <Link href={href}>
+            <Button className="w-full bg-orange-600/20 text-orange-300 border-orange-600/30 hover:bg-orange-600/30">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Resubmit
+            </Button>
+          </Link>
+        )
+      case 'submitted':
+        return (
+          <Link href={href}>
+            <Button className="w-full bg-blue-600/20 text-blue-300 border-blue-600/30 hover:bg-blue-600/30">
+              <Eye className="h-4 w-4 mr-2" />
+              View Submission
+            </Button>
+          </Link>
+        )
+      default:
+        return (
+          <Link href={href}>
+            <Button className="w-full">
+              <FileText className="h-4 w-4 mr-2" />
+              Start Assignment
+            </Button>
+          </Link>
+        )
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading assignments...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto"></div>
+            <p className="text-slate-400 mt-4">Loading assignments...</p>
+          </div>
         </div>
       </div>
     )
@@ -158,238 +145,145 @@ export default function StudentAssignmentsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">Error loading assignments</p>
-          <Button onClick={() => window.location.reload()}>
-            Retry
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-20">
+            <div className="text-red-400 text-xl mb-4">Error loading assignments</div>
+            <p className="text-slate-400">{error}</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <AnimationWrapper>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">My Assignments</h1>
-            <p className="text-slate-400">Track your progress and manage your work</p>
-          </div>
-        </div>
-      </AnimationWrapper>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <AnimationWrapper>
+          <GlassCard className="p-8">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold text-white mb-2">My Assignments</h1>
+              <p className="text-slate-400">Track your progress and manage your work</p>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
 
-      {/* Main Navigation */}
-      <AnimationWrapper delay={0.1}>
-        <div className="flex justify-center">
-          <FluidTabs
-            tabs={[
-              { 
-                id: 'assignments', 
-                label: 'Assignments', 
-                icon: <ClipboardList className="h-4 w-4" />, 
-                badge: assignments.length
-              },
-              { 
-                id: 'progress', 
-                label: 'Progress', 
-                icon: <BarChart3 className="h-4 w-4" />, 
-                badge: assignments.filter(a => a.is_graded).length
-              }
-            ]}
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab)}
-            variant="default"
-            width="wide"
-          />
-        </div>
-      </AnimationWrapper>
-
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value)}>
-        
-        {/* Assignments Tab */}
-        <TabsContent value="assignments" className="space-y-6">
-          {/* Search and Filters */}
-          <AnimationWrapper delay={0.2}>
-            <GlassCard className="p-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Input
-                    placeholder="Search assignments or courses..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-white/5 border-white/10 text-white placeholder-slate-400"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  {["all", "pending", "submitted", "overdue", "awaiting_response"].map((filter) => (
-                    <Button
-                      key={filter}
-                      variant={filterStatus === filter ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setFilterStatus(filter as any)}
-                      className={filterStatus === filter ? "bg-blue-600/80 text-white" : "text-slate-300 hover:text-white hover:bg-white/10"}
-                    >
-                      {filter === 'awaiting_response' ? 'Awaiting Response' : filter.charAt(0).toUpperCase() + filter.slice(1)}
-                    </Button>
-                  ))}
-                </div>
+        {/* Progress Summary */}
+        <AnimationWrapper delay={0.1}>
+          <GlassCard className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">{progressData.totalAssignments}</div>
+                <div className="text-slate-400 text-sm">Total</div>
               </div>
-            </GlassCard>
-          </AnimationWrapper>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-400">{progressData.submittedAssignments}</div>
+                <div className="text-slate-400 text-sm">Submitted</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-400">{progressData.completedAssignments}</div>
+                <div className="text-slate-400 text-sm">Completed</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-400">{progressData.awaitingResponse}</div>
+                <div className="text-slate-400 text-sm">Awaiting Response</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-slate-400">{progressData.pendingAssignments}</div>
+                <div className="text-slate-400 text-sm">Pending</div>
+              </div>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
 
-          {/* Assignments Grid */}
+        {/* Search and Filters */}
+        <AnimationWrapper delay={0.2}>
+          <GlassCard className="p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <Input
+                  placeholder="Search assignments or courses..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-white/5 border-white/10 text-white placeholder-slate-400"
+                />
+              </div>
+              <div className="flex gap-2">
+                {["all", "pending", "submitted", "overdue", "awaiting_response"].map((filter) => (
+                  <Button
+                    key={filter}
+                    variant={filterStatus === filter ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setFilterStatus(filter as any)}
+                    className={filterStatus === filter ? "bg-blue-600/80 text-white" : "text-slate-300 hover:text-white hover:bg-white/10"}
+                  >
+                    {filter === 'awaiting_response' ? 'Awaiting Response' : filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
+
+        {/* Assignments Grid */}
+        <AnimationWrapper delay={0.3}>
           {filteredAssignments.length === 0 ? (
-            <AnimationWrapper delay={0.3}>
-              <GlassCard className="p-8">
-                <div className="text-center">
-                  <ClipboardList className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No assignments found</h3>
-                  <p className="text-slate-400">Try adjusting your search or filter criteria</p>
-                </div>
-              </GlassCard>
-            </AnimationWrapper>
+            <GlassCard className="p-12 text-center">
+              <ClipboardList className="h-16 w-16 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">No assignments found</h3>
+              <p className="text-slate-400">
+                {searchTerm || filterStatus !== "all" 
+                  ? "Try adjusting your search or filter criteria."
+                  : "You don't have any assignments yet."}
+              </p>
+            </GlassCard>
           ) : (
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredAssignments.map((assignment, index) => (
-                <AnimationWrapper key={assignment.id} delay={index * 0.1}>
-                  <GlassCard className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105">
+                <AnimationWrapper key={assignment.id} delay={0.1 * index}>
+                  <GlassCard className="p-6 hover:bg-white/5 transition-all duration-300">
                     <div className="space-y-4">
                       {/* Header */}
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-white truncate mb-1">
-                            {assignment.title}
-                          </h3>
-                          <p className="text-xs text-slate-400">{assignment.course_title}</p>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-1">{assignment.title}</h3>
+                          <p className="text-slate-400 text-sm">{assignment.course_title}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {getStatusBadge(assignment)}
-                        </div>
+                        {getStatusBadge(assignment)}
                       </div>
 
                       {/* Assignment Type */}
                       <div className="flex items-center gap-2">
-                        <div className="p-2 bg-white/10 rounded-lg">
-                          {getAssignmentIcon(assignment.type)}
-                        </div>
-                        <Badge variant="outline" className="border-slate-500 text-slate-300 capitalize">
-                          {assignment.type}
-                        </Badge>
+                        {getAssignmentIcon(assignment.type)}
+                        <span className="text-slate-300 text-sm capitalize">{assignment.type}</span>
+                        <span className="text-slate-500">•</span>
+                        <span className="text-slate-300 text-sm">{assignment.points} points</span>
                       </div>
 
                       {/* Description */}
-                      <p className="text-sm text-slate-300 line-clamp-2">
-                        {assignment.description}
-                      </p>
+                      {assignment.description && (
+                        <p className="text-slate-400 text-sm line-clamp-2">{assignment.description}</p>
+                      )}
 
                       {/* Due Date */}
                       {assignment.due_at && (
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                          <Clock className="h-4 w-4" />
-                          <span>Due {new Date(assignment.due_at).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                          <Calendar className="h-4 w-4" />
+                          <span>Due: {new Date(assignment.due_at).toLocaleDateString()}</span>
                         </div>
                       )}
 
-                      {/* Actions */}
-                      <div className="flex gap-2 pt-2">
-                        <Link href={`/student/assignment/${assignment.id}`} className="flex-1">
-                          <Button size="sm" className="w-full bg-blue-600/80 hover:bg-blue-600 text-white">
-                            {assignment.is_graded ? 'View Result' : 
-                             assignment.is_submitted ? 'View Submission' :
-                             !assignment.is_available ? 'Not Available' : 'Start Assignment'}
-                          </Button>
-                        </Link>
-                      </div>
+                      {/* Action Button */}
+                      {getActionButton(assignment)}
                     </div>
                   </GlassCard>
                 </AnimationWrapper>
               ))}
             </div>
           )}
-        </TabsContent>
-
-        {/* Progress Tab */}
-        <TabsContent value="progress" className="space-y-6">
-          {progressLoading ? (
-            <div className="flex items-center justify-center min-h-[200px]">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
-            </div>
-          ) : progressData ? (
-            <GlassCard className="p-8">
-              <div className="space-y-6">
-                <div className="text-center">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 text-blue-400 opacity-50" />
-                  <h3 className="text-lg font-medium text-white mb-2">Performance Overview</h3>
-                </div>
-                
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <div className="text-2xl font-bold text-white">{progressData.totalAssignments}</div>
-                    <div className="text-sm text-slate-400">Total</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-400">{progressData.completedAssignments}</div>
-                    <div className="text-sm text-slate-400">Submitted</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-400">{progressData.gradedAssignments}</div>
-                    <div className="text-sm text-slate-400">Graded</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                    <div className="text-2xl font-bold text-yellow-400">{progressData.averageGrade}%</div>
-                    <div className="text-sm text-slate-400">Average</div>
-                  </div>
-                </div>
-
-                {/* Recent Activity */}
-                {progressData.recentActivity.length > 0 && (
-                  <div>
-                    <h4 className="text-md font-medium text-white mb-3">Recent Activity</h4>
-                    <div className="space-y-2">
-                      {progressData.recentActivity.map((activity: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${
-                              activity.type === 'grade' ? 'bg-green-500/20' : 'bg-blue-500/20'
-                            }`}>
-                              {activity.type === 'grade' ? (
-                                <CheckCircle className="h-4 w-4 text-green-400" />
-                              ) : (
-                                <FileText className="h-4 w-4 text-blue-400" />
-                              )}
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-white">{activity.assignment}</div>
-                              <div className="text-xs text-slate-400">
-                                {activity.type === 'grade' ? 'Graded' : 'Submitted'} • {new Date(activity.date).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                          {activity.grade && (
-                            <div className="text-sm font-bold text-green-400">{activity.grade}%</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </GlassCard>
-          ) : (
-            <GlassCard className="p-8">
-              <div className="text-center">
-                <BarChart3 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-2">No progress data available</h3>
-                <p className="text-slate-400">Complete some assignments to see your progress</p>
-              </div>
-            </GlassCard>
-          )}
-        </TabsContent>
-      </Tabs>
+        </AnimationWrapper>
+      </div>
     </div>
   )
 }

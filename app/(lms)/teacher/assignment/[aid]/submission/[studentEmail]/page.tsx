@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useAssignment } from "@/services/assignments/hook"
-import { useSubmission, useSubmissionManagement } from "@/services/submissions/hook"
+import { useSubmission } from "@/hooks/use-teacher-submissions"
 import { http } from "@/services/http"
 import { 
   ArrowLeft, 

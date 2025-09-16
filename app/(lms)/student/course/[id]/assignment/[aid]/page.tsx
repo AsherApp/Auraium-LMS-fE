@@ -10,10 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { useAuthStore } from "@/store/auth-store"
-import { useAssignment, useMySubmission } from "@/services/assignments/hook"
-import { useSubmissionManagement } from "@/services/submissions/hook"
-import { type Assignment } from "@/services/assignments/api"
-import { type Submission } from "@/services/submissions/api"
+import { useStudentAssignment } from "@/hooks/use-student-assignments"
+import { type StudentAssignment } from "@/services/student-assignments/api"
 import { RichTextEditor } from "@/components/shared/rich-text-editor"
 import { 
   ArrowLeft, 
