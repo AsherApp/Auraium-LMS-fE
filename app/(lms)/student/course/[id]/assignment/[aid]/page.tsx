@@ -124,18 +124,6 @@ export default function StudentAssignmentWorkspacePage() {
     }
   }, [studentSubmission, currentSubmission])
 
-  // Debug assignment data
-  useEffect(() => {
-    if (assignment) {
-      console.log('🔍 Assignment loaded:', {
-        id: assignment.id,
-        title: assignment.title,
-        type: assignment.type,
-        settings: assignment.settings,
-        quiz_questions: assignment.settings?.quiz_questions
-      })
-    }
-  }, [assignment])
 
   // Initialize timer if assignment has time limit
   useEffect(() => {
