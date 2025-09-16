@@ -47,7 +47,17 @@ export type Submission = {
   student_id: string
   student_email: string
   student_name?: string
-  content?: any
+  // New specific content fields
+  essay_content?: string
+  project_description?: string
+  discussion_response?: string
+  presentation_notes?: string
+  code_submission?: string
+  peer_review_content?: string
+  quiz_answers?: any
+  uploaded_files?: any[]
+  // Legacy fields
+  content?: any // Keep for backward compatibility during migration
   response?: string
   status: 'submitted' | 'graded' | 'returned'
   attempt_number: number

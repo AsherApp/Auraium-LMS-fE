@@ -48,7 +48,7 @@ export default function TeacherSubmissionDetailPage() {
   const [feedback, setFeedback] = useState("")
   const [requestResubmission, setRequestResubmission] = useState(false)
 
-  // Update grading state when submission loads
+  // Load existing grade and feedback
   useEffect(() => {
     if (submission) {
       setGrade(submission.grade || 0)
@@ -57,7 +57,7 @@ export default function TeacherSubmissionDetailPage() {
   }, [submission])
 
   const handleGradeSubmission = async () => {
-    if (!submission) return
+    if (!submission || !assignment) return
     
     try {
       await gradeSubmission(submission.id, {
@@ -153,361 +153,263 @@ export default function TeacherSubmissionDetailPage() {
       <GlassCard className="p-6">
         <div className="flex items-start justify-between gap-6">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-3 mb-2">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
-                className="text-slate-400 hover:text-white hover:bg-white/10 p-2"
+                className="text-slate-400 hover:text-white"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Assignment
               </Button>
-              <span className="text-sm text-slate-400">{assignment.title}</span>
             </div>
+            <h1 className="text-2xl font-bold text-white mb-2">{assignment.title}</h1>
+            <p className="text-slate-300 mb-4">{assignment.description}</p>
             
-            <h1 className="text-3xl font-bold text-white mb-3">Student Submission Review</h1>
-            <p className="text-slate-400">Review and grade student submission</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(submission.status)}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-slate-400" />
+                <span className="text-slate-300">Student:</span>
+                <span className="text-white">{submission.student_name || submission.student_email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-300">Status:</span>
+                {getStatusBadge(submission.status)}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-300">Attempt:</span>
+                <span className="text-white">{submission.attempt_number}</span>
+              </div>
+            </div>
           </div>
         </div>
       </GlassCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Student Submission */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Student Info */}
-          <GlassCard className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-600/20 rounded-lg">
-                <Users className="h-5 w-5 text-blue-400" />
-              </div>
+      {/* Submission Content */}
+      <GlassCard className="p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Student Response</h3>
+        
+        {submission.response ? (
+          <div className="space-y-4">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+              <h4 className="font-medium text-white mb-2">Student Response</h4>
+              <p className="text-slate-300 whitespace-pre-wrap">{submission.response}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Essay Content */}
+            {submission.essay_content && submission.essay_content.trim() && (
               <div>
-                <h3 className="text-lg font-semibold text-white">{submission?.student_name || 'Unknown Student'}</h3>
-                <p className="text-sm text-slate-400">{submission?.student_email || 'Unknown Email'}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-300">Submitted:</span>
-                <span className="text-white">{submission.submitted_at ? new Date(submission.submitted_at).toLocaleString() : 'Unknown'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-300">Status:</span>
-                <span className="text-white capitalize">{submission.status}</span>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Submission Content */}
-          <GlassCard className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Student Response</h3>
-            
-            {submission.response ? (
-              <div className="space-y-4">
+                <h4 className="font-medium text-white mb-2">Essay Response</h4>
                 <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                  <h4 className="font-medium text-white mb-2">Student Response</h4>
-                  <p className="text-slate-300 whitespace-pre-wrap">{submission.response}</p>
+                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                       dangerouslySetInnerHTML={{ __html: submission.essay_content }} />
                 </div>
               </div>
-            ) : submission.content && Object.keys(submission.content).length > 0 ? (
-              <div className="space-y-4">
-
-                {/* Handle different content types safely */}
-                {submission.content.essay && typeof submission.content.essay === 'string' && submission.content.essay.trim() && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Essay Response</h4>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                           dangerouslySetInnerHTML={{ __html: submission.content.essay }} />
-                    </div>
-                  </div>
-                )}
-                
-                {submission.content.project && typeof submission.content.project === 'string' && submission.content.project.trim() && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Project Description</h4>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                           dangerouslySetInnerHTML={{ __html: submission.content.project }} />
-                    </div>
-                  </div>
-                )}
-                
-                {submission.content.discussion && typeof submission.content.discussion === 'string' && submission.content.discussion.trim() && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Discussion Response</h4>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
-                           dangerouslySetInnerHTML={{ __html: submission.content.discussion }} />
-                    </div>
-                  </div>
-                )}
-                
-                {submission.content.quiz && assignment?.settings?.quiz_questions && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Quiz Response</h4>
-                    <QuizViewer
-                      questions={assignment.settings.quiz_questions}
-                      submission={submission.content.quiz}
-                      showResults={true}
-                      isTeacherView={true}
-                    />
-                  </div>
-                )}
-                
-                {submission.content.code_submission && typeof submission.content.code_submission === 'string' && submission.content.code_submission.trim() && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Code Submission</h4>
-                    <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                      <CodeViewer 
-                        code={submission.content.code_submission}
-                        language="javascript"
-                        readOnly={true}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {submission.content.peer_review && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Peer Review</h4>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <pre className="text-slate-300 whitespace-pre-wrap text-xs overflow-auto">
-                        {JSON.stringify(submission.content.peer_review, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-
-                {submission.content.file_upload && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">File Upload</h4>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <pre className="text-slate-300 whitespace-pre-wrap text-xs overflow-auto">
-                        {JSON.stringify(submission.content.file_upload, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-
-                {submission.content.presentation && typeof submission.content.presentation === 'string' && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Presentation Notes</h4>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                      <div 
-                        className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: submission.content.presentation }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {submission.content.files && Array.isArray(submission.content.files) && submission.content.files.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-white mb-2">Uploaded Files</h4>
-                    <div className="space-y-2">
-                      {submission.content.files.map((file: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-slate-400 hover:text-white"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Handle any other content types that might exist */}
-                {Object.entries(submission.content).map(([key, value]) => {
-                  // Skip already handled fields
-                  if (['essay', 'project', 'discussion', 'quiz', 'code_submission', 'peer_review', 'file_upload', 'presentation', 'files'].includes(key)) {
-                    return null
-                  }
-                  
-                  // Handle unknown fields safely
-                  return (
-                    <div key={key}>
-                      <h4 className="font-medium text-white mb-2">{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h4>
-                      <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                        {typeof value === 'string' ? (
-                          <p className="text-slate-300 whitespace-pre-wrap">{value}</p>
-                        ) : (
-                          <pre className="text-slate-300 whitespace-pre-wrap text-xs overflow-auto">
-                            {JSON.stringify(value, null, 2)}
-                          </pre>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+            )}
+            
+            {/* Project Content */}
+            {submission.project_description && submission.project_description.trim() && (
+              <div>
+                <h4 className="font-medium text-white mb-2">Project Description</h4>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                       dangerouslySetInnerHTML={{ __html: submission.project_description }} />
+                </div>
               </div>
-            ) : (
+            )}
+            
+            {/* Discussion Content */}
+            {submission.discussion_response && submission.discussion_response.trim() && (
+              <div>
+                <h4 className="font-medium text-white mb-2">Discussion Response</h4>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                       dangerouslySetInnerHTML={{ __html: submission.discussion_response }} />
+                </div>
+              </div>
+            )}
+            
+            {/* Quiz Content */}
+            {submission.quiz_answers && assignment?.settings?.quiz_questions && (
+              <div>
+                <h4 className="font-medium text-white mb-2">Quiz Response</h4>
+                <QuizViewer
+                  questions={assignment.settings.quiz_questions}
+                  submission={submission.quiz_answers}
+                  showResults={true}
+                  isTeacherView={true}
+                />
+              </div>
+            )}
+            
+            {/* Code Submission */}
+            {submission.code_submission && submission.code_submission.trim() && (
+              <div>
+                <h4 className="font-medium text-white mb-2">Code Submission</h4>
+                <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
+                  <CodeViewer 
+                    code={submission.code_submission}
+                    language="javascript"
+                    readOnly={true}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Peer Review Content */}
+            {submission.peer_review_content && (
+              <div>
+                <h4 className="font-medium text-white mb-2">Peer Review</h4>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <div className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none" 
+                       dangerouslySetInnerHTML={{ __html: submission.peer_review_content }} />
+                </div>
+              </div>
+            )}
+
+            {/* Presentation Content */}
+            {submission.presentation_notes && submission.presentation_notes.trim() && (
+              <div>
+                <h4 className="font-medium text-white mb-2">Presentation Notes</h4>
+                <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                  <div 
+                    className="text-slate-300 whitespace-pre-wrap prose prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: submission.presentation_notes }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Uploaded Files */}
+            {submission.uploaded_files && Array.isArray(submission.uploaded_files) && submission.uploaded_files.length > 0 && (
+              <div>
+                <h4 className="font-medium text-white mb-2">Uploaded Files</h4>
+                <div className="space-y-2">
+                  {submission.uploaded_files.map((file: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-4 w-4 text-slate-400" />
+                        <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-slate-400 hover:text-white"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No content fallback */}
+            {!submission.essay_content && !submission.project_description && !submission.discussion_response && 
+             !submission.quiz_answers && !submission.code_submission && !submission.peer_review_content && 
+             !submission.presentation_notes && (!submission.uploaded_files || submission.uploaded_files.length === 0) && (
               <div className="text-center text-slate-400 py-8">
                 <FileText className="h-12 w-12 mx-auto mb-4" />
                 <p>No response provided</p>
               </div>
             )}
-          </GlassCard>
+          </div>
+        )}
+      </GlassCard>
 
-          {/* Attachments */}
-          {submission.files && submission.files.length > 0 && (
-            <GlassCard className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Attachments</h3>
-              <div className="space-y-2">
-                {submission.files.map((file: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-slate-400" />
-                      <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-slate-400 hover:text-white"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
+      {/* Grading Section */}
+      <GlassCard className="p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Grade & Feedback</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Grade (out of {assignment.points})
+            </label>
+            <Input
+              type="number"
+              min="0"
+              max={assignment.points}
+              value={grade}
+              onChange={(e) => setGrade(Number(e.target.value))}
+              className="bg-white/5 border-white/10 text-white"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Feedback
+            </label>
+            <Textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Provide feedback for the student..."
+              className="bg-white/5 border-white/10 text-white min-h-[120px]"
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="requestResubmission"
+              checked={requestResubmission}
+              onChange={(e) => setRequestResubmission(e.target.checked)}
+              className="rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="requestResubmission" className="text-sm text-slate-300">
+              Request resubmission
+            </label>
+          </div>
+          
+          <Button
+            onClick={handleGradeSubmission}
+            disabled={grading}
+            className="bg-blue-600/80 hover:bg-blue-600 text-white"
+          >
+            {grading ? (
+              <>
+                <Save className="h-4 w-4 mr-2 animate-spin" />
+                Grading...
+              </>
+            ) : (
+              <>
+                <Award className="h-4 w-4 mr-2" />
+                {requestResubmission ? 'Return for Resubmission' : 'Submit Grade'}
+              </>
+            )}
+          </Button>
+        </div>
+      </GlassCard>
+
+      {/* Assignment Details */}
+      <GlassCard className="p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Assignment Details</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-300">Points:</span>
+            <span className="text-white">{assignment.points}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-300">Type:</span>
+            <span className="text-white capitalize">{assignment.type?.replace('_', ' ')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-300">Submitted:</span>
+            <span className="text-white">{new Date(submission.submitted_at).toLocaleString()}</span>
+          </div>
+          
+          {assignment.due_at && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-slate-400" />
+              <span className="text-slate-300">Due:</span>
+              <span className="text-white">{new Date(assignment.due_at).toLocaleDateString()}</span>
+            </div>
           )}
         </div>
-
-        {/* Grading Panel */}
-        <div className="space-y-6">
-          <GlassCard className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Grading</h3>
-            
-            <div className="space-y-4">
-              {/* Grade Input */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Grade (out of {assignment.points})
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max={assignment.points}
-                  value={grade}
-                  onChange={(e) => setGrade(Number(e.target.value))}
-                  className="bg-white/5 border-white/10 text-white"
-                  placeholder="Enter grade"
-                />
-              </div>
-
-              {/* Feedback */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Feedback
-                </label>
-                <Textarea
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  className="bg-white/5 border-white/10 text-white min-h-[120px]"
-                  placeholder="Provide feedback to the student..."
-                />
-              </div>
-
-              {/* Request Resubmission Checkbox */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="requestResubmission"
-                  checked={requestResubmission}
-                  onChange={(e) => setRequestResubmission(e.target.checked)}
-                  className="rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="requestResubmission" className="text-sm text-slate-300">
-                  Request resubmission
-                </label>
-              </div>
-
-              {/* Current Grade Display */}
-              {submission.grade !== null && submission.grade !== undefined && (
-                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-green-400" />
-                    <span className="text-green-400 font-medium">
-                      Current Grade: {submission.grade}/{assignment.points}
-                    </span>
-                  </div>
-                  {submission.feedback && (
-                    <p className="text-sm text-slate-300 mt-2">{submission.feedback}</p>
-                  )}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                {/* Submit Grade Button */}
-                <Button
-                  onClick={handleGradeSubmission}
-                  disabled={grading}
-                  className="w-full bg-blue-600/80 hover:bg-blue-600 text-white"
-                >
-                  {grading ? (
-                    <>
-                      <Clock className="h-4 w-4 mr-2 animate-spin" />
-                      Grading...
-                    </>
-                  ) : submission.status === 'graded' ? (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Update Grade
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      {requestResubmission ? 'Return for Resubmission' : 'Submit Grade'}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </GlassCard>
-
-          {/* Assignment Details */}
-          <GlassCard className="p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Assignment Details</h3>
-            
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-300">Type:</span>
-                <span className="text-white capitalize">{assignment.type.replace('_', ' ')}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Award className="h-4 w-4 text-slate-400" />
-                <span className="text-slate-300">Points:</span>
-                <span className="text-white">{assignment.points}</span>
-              </div>
-              
-              {assignment.due_at && (
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-slate-400" />
-                  <span className="text-slate-300">Due:</span>
-                  <span className="text-white">{new Date(assignment.due_at).toLocaleDateString()}</span>
-                </div>
-              )}
-            </div>
-          </GlassCard>
-        </div>
-      </div>
+      </GlassCard>
     </div>
   )
 }

@@ -107,22 +107,19 @@ export default function StudentAssignmentWorkspacePage() {
   // Initialize content from existing submission
   useEffect(() => {
     const submission = studentSubmission || currentSubmission
-    if (submission?.content) {
-      console.log('🔍 Loading submission content:', submission.content);
-      console.log('🔍 Essay from submission:', submission.content.essay);
-      
+    if (submission) {
       setContent({
-        essay: submission.content.essay || '',
-        file_upload: submission.content.file_upload || [],
-        quiz: submission.content.quiz_answers || {},
-        project: submission.content.project_description || '',
-        discussion: submission.content.discussion_posts?.join('\n') || '',
-        presentation: submission.content.presentation_slides?.join('\n') || '',
-        code_submission: submission.content.code?.content || '',
-        peer_review: submission.content.peer_review || ''
+        essay: submission.essay_content || '',
+        file_upload: submission.uploaded_files || [],
+        quiz: submission.quiz_answers || {},
+        project: submission.project_description || '',
+        discussion: submission.discussion_response || '',
+        presentation: submission.presentation_notes || '',
+        code_submission: submission.code_submission || '',
+        peer_review: submission.peer_review_content || ''
       })
-      if (submission.content.quiz_answers) {
-        setQuizAnswers(submission.content.quiz_answers)
+      if (submission.quiz_answers) {
+        setQuizAnswers(submission.quiz_answers)
       }
     }
   }, [studentSubmission, currentSubmission])
@@ -214,7 +211,14 @@ export default function StudentAssignmentWorkspacePage() {
     try {
       const submissionData = {
         assignment_id: assignmentId,
-        content,
+        essay_content: content.essay,
+        project_description: content.project,
+        discussion_response: content.discussion,
+        presentation_notes: content.presentation,
+        code_submission: content.code_submission,
+        peer_review_content: content.peer_review,
+        quiz_answers: content.quiz,
+        uploaded_files: content.file_upload,
         response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
       
@@ -241,17 +245,18 @@ export default function StudentAssignmentWorkspacePage() {
     
     setSubmitting(true)
     try {
-      // Debug: Log the content being submitted
-      console.log('🔍 Submitting content:', content);
-      console.log('🔍 Essay content:', content.essay);
-      
       const submissionData = {
         assignment_id: assignmentId,
-        content,
+        essay_content: content.essay,
+        project_description: content.project,
+        discussion_response: content.discussion,
+        presentation_notes: content.presentation,
+        code_submission: content.code_submission,
+        peer_review_content: content.peer_review,
+        quiz_answers: content.quiz,
+        uploaded_files: content.file_upload,
         response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
-      
-      console.log('🔍 Submission data:', submissionData);
       
       const existingSubmission = studentSubmission || currentSubmission
       if (existingSubmission) {
