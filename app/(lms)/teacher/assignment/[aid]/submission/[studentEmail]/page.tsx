@@ -168,47 +168,38 @@ export default function TeacherSubmissionDetailPage() {
 
   if (assignmentLoading || submissionLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="space-y-6">
-            <GlassCard className="p-8">
-              <div className="text-center text-slate-300">Loading submission...</div>
-            </GlassCard>
-          </div>
-        </div>
+      <div className="space-y-6">
+        <GlassCard className="p-8">
+          <div className="text-center text-slate-300">Loading submission...</div>
+        </GlassCard>
       </div>
     )
   }
 
   if (submissionError || !assignment || !submission) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="space-y-6">
-            <GlassCard className="p-8">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-white mb-2">Submission Not Found</h3>
-                <p className="text-slate-400 mb-4">
-                  {submissionError || "This submission doesn't exist or you don't have access to it."}
-                </p>
-                <Button 
-                  onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
-                  className="bg-blue-600/80 hover:bg-blue-600 text-white"
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Assignment
-                </Button>
-              </div>
-            </GlassCard>
+      <div className="space-y-6">
+        <GlassCard className="p-8">
+          <div className="text-center">
+            <h3 className="text-xl font-semibold text-white mb-2">Submission Not Found</h3>
+            <p className="text-slate-400 mb-4">
+              {submissionError || "This submission doesn't exist or you don't have access to it."}
+            </p>
+            <Button 
+              onClick={() => router.push(`/teacher/assignment/${assignmentId}`)}
+              className="bg-blue-600/80 hover:bg-blue-600 text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Assignment
+            </Button>
           </div>
-        </div>
+        </GlassCard>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="space-y-6">
         {/* Header with Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -572,7 +563,6 @@ export default function TeacherSubmissionDetailPage() {
             </GlassCard>
           </div>
         </div>
-      </div>
     </div>
   )
 }

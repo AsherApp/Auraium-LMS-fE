@@ -548,8 +548,7 @@ export default function TeacherAssignmentDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="space-y-6">
         {/* Header with Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -1103,7 +1102,6 @@ export default function TeacherAssignmentDetailPage() {
             </div>
           )}
         </div>
-      </div>
     </div>
   )
 }
