@@ -124,6 +124,19 @@ export default function StudentAssignmentWorkspacePage() {
     }
   }, [studentSubmission, currentSubmission])
 
+  // Debug assignment data
+  useEffect(() => {
+    if (assignment) {
+      console.log('🔍 Assignment loaded:', {
+        id: assignment.id,
+        title: assignment.title,
+        type: assignment.type,
+        settings: assignment.settings,
+        quiz_questions: assignment.settings?.quiz_questions
+      })
+    }
+  }, [assignment])
+
   // Initialize timer if assignment has time limit
   useEffect(() => {
     const submission = studentSubmission || currentSubmission
@@ -306,23 +319,46 @@ export default function StudentAssignmentWorkspacePage() {
     }
   }
 
-  const submitQuiz = () => {
+  const submitQuiz = async () => {
     if (!assignment?.settings?.quiz_questions) return
     
     const results: Record<string, boolean> = {}
-        assignment.settings.quiz_questions?.forEach((question: any) => {
+    assignment.settings.quiz_questions?.forEach((question: any) => {
       if (question.type === 'multi-select') {
         const studentAnswer = (quizAnswers[question.id] as number[]) || []
         const correctAnswer = question.correctIndexes || []
         results[question.id] = studentAnswer.length === correctAnswer.length && 
           studentAnswer.every(ans => correctAnswer.includes(ans))
       } else {
-        results[question.id] = quizAnswers[question.id] === question.correctIndex
+        // Support both correctIndex and correct_answer fields
+        const correctAnswer = question.correctIndex !== undefined ? question.correctIndex : question.correct_answer
+        results[question.id] = quizAnswers[question.id] === correctAnswer
       }
     })
     
     setQuizResults(results)
     setQuizSubmitted(true)
+    
+    // Save quiz submission to database
+    try {
+      await createSubmission({
+        assignment_id: assignment.id,
+        quiz_answers: quizAnswers,
+        response: JSON.stringify({ quiz_answers: quizAnswers, results })
+      })
+      
+      toast({
+        title: "Quiz submitted successfully!",
+        description: "Your quiz answers have been saved.",
+      })
+    } catch (error: any) {
+      console.error('Failed to submit quiz:', error)
+      toast({
+        title: "Failed to submit quiz",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      })
+    }
   }
 
   const getFileIcon = (file: File) => {
@@ -538,9 +574,9 @@ export default function StudentAssignmentWorkspacePage() {
                             />
                             <span className={`flex-1 ${
                               quizSubmitted
-                                ? optionIndex === (question.type === 'multi-select' ? question.correctIndexes?.[0] : question.correctIndex)
+                                ? optionIndex === (question.type === 'multi-select' ? question.correctIndexes?.[0] : (question.correctIndex !== undefined ? question.correctIndex : question.correct_answer))
                                   ? 'text-green-400'
-                                  : isSelected && optionIndex !== (question.type === 'multi-select' ? question.correctIndexes?.[0] : question.correctIndex)
+                                  : isSelected && optionIndex !== (question.type === 'multi-select' ? question.correctIndexes?.[0] : (question.correctIndex !== undefined ? question.correctIndex : question.correct_answer))
                                   ? 'text-red-400'
                                   : 'text-slate-400'
                                 : 'text-slate-300'
@@ -549,10 +585,10 @@ export default function StudentAssignmentWorkspacePage() {
                             </span>
                             {quizSubmitted && (
                               <>
-                                {optionIndex === (question.type === 'multi-select' ? question.correctIndexes?.[0] : question.correctIndex) && (
+                                {optionIndex === (question.type === 'multi-select' ? question.correctIndexes?.[0] : (question.correctIndex !== undefined ? question.correctIndex : question.correct_answer)) && (
                                   <CheckCircle2 className="h-5 w-5 text-green-400" />
                                 )}
-                                {isSelected && optionIndex !== (question.type === 'multi-select' ? question.correctIndexes?.[0] : question.correctIndex) && (
+                                {isSelected && optionIndex !== (question.type === 'multi-select' ? question.correctIndexes?.[0] : (question.correctIndex !== undefined ? question.correctIndex : question.correct_answer)) && (
                                   <XCircle className="h-5 w-5 text-red-400" />
                                 )}
                               </>
