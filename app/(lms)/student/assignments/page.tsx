@@ -40,7 +40,7 @@ export default function StudentAssignmentsPage() {
   const [progressData, setProgressData] = useState<any>(null)
   const [progressLoading, setProgressLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "submitted" | "overdue">("all")
+  const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "submitted" | "overdue" | "resubmission">("all")
   const [activeTab, setActiveTab] = useState("assignments")
 
   // Process assignments from simplified API
@@ -105,6 +105,9 @@ export default function StudentAssignmentsPage() {
       case "overdue":
         matchesFilter = !!assignment.is_overdue && !assignment.is_submitted
         break
+      case "resubmission":
+        matchesFilter = assignment.student_submission?.status === 'returned' || assignment.can_resubmit
+        break
       default:
         matchesFilter = true
     }
@@ -113,7 +116,10 @@ export default function StudentAssignmentsPage() {
   })
 
   const getStatusBadge = (assignment: AssignmentWithSubmission) => {
-    if (assignment.is_graded) {
+    // Check for resubmission request first
+    if (assignment.student_submission?.status === 'returned' || assignment.can_resubmit) {
+      return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Resubmission Required</Badge>
+    } else if (assignment.is_graded) {
       return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
     } else if (assignment.is_submitted) {
       return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
@@ -219,7 +225,7 @@ export default function StudentAssignmentsPage() {
                   />
                 </div>
                 <div className="flex gap-2">
-                  {["all", "pending", "submitted", "overdue"].map((filter) => (
+                  {["all", "pending", "submitted", "overdue", "resubmission"].map((filter) => (
                     <Button
                       key={filter}
                       variant={filterStatus === filter ? "default" : "ghost"}
@@ -292,7 +298,8 @@ export default function StudentAssignmentsPage() {
                       <div className="flex gap-2 pt-2">
                         <Link href={`/student/assignment/${assignment.id}`} className="flex-1">
                           <Button size="sm" className="w-full bg-blue-600/80 hover:bg-blue-600 text-white">
-                            {assignment.is_graded ? 'View Result' : 
+                            {assignment.student_submission?.status === 'returned' || assignment.can_resubmit ? 'Resubmit' :
+                             assignment.is_graded ? 'View Result' : 
                              assignment.is_submitted ? 'View Submission' :
                              !assignment.is_available ? 'Not Available' : 'Start Assignment'}
                           </Button>
