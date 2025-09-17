@@ -65,6 +65,14 @@ export default function StudentAssignmentWorkspacePage() {
   const [saving, setSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [timeSpent, setTimeSpent] = useState(0)
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  
+  // Initialize submission state based on assignment status
+  useEffect(() => {
+    if (assignment?.status === 'submitted') {
+      setIsSubmitted(true)
+    }
+  }, [assignment?.status])
   
   // Submission content based on assignment type
   const [content, setContent] = useState<{
@@ -166,7 +174,7 @@ export default function StudentAssignmentWorkspacePage() {
         if (prev === null || prev <= 1) {
           setTimerActive(false)
           // Auto-submit when time runs out
-          if (assignment?.status !== 'submitted') {
+          if (!isSubmitted && assignment?.status !== 'submitted') {
             handleSubmit()
           }
           return 0
@@ -180,7 +188,7 @@ export default function StudentAssignmentWorkspacePage() {
 
   const handleAutoSave = async () => {
     const submission = studentSubmission || currentSubmission
-    if (!assignment || !user?.email || assignment?.status === 'submitted') return
+    if (!assignment || !user?.email || isSubmitted || assignment?.status === 'submitted') return
     
     setIsAutoSaving(true)
     try {
@@ -262,17 +270,40 @@ export default function StudentAssignmentWorkspacePage() {
       }
       
       const existingSubmission = studentSubmission || currentSubmission
+      let submittedSubmission
       if (existingSubmission) {
         // Update existing submission
-        const updatedSubmission = await updateSubmission(existingSubmission.id, submissionData)
-        setCurrentSubmission(updatedSubmission)
+        submittedSubmission = await updateSubmission(existingSubmission.id, submissionData)
+        setCurrentSubmission(submittedSubmission)
       } else {
         // Create new submission
-        const newSubmission = await createSubmission(submissionData)
-        setCurrentSubmission(newSubmission)
+        submittedSubmission = await createSubmission(submissionData)
+        setCurrentSubmission(submittedSubmission)
       }
+      
+      // Update assignment status locally to show immediate feedback
+      if (assignment) {
+        assignment.status = 'submitted'
+        assignment.is_submitted = true
+      }
+      
+      // Set local submission state for immediate UI feedback
+      setIsSubmitted(true)
+      
+      // Show success message
+      toast({
+        title: "Assignment Submitted Successfully!",
+        description: "Your assignment has been submitted and is awaiting grading.",
+        variant: "default"
+      })
+      
     } catch (err: any) {
       console.error('Failed to submit:', err)
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your assignment. Please try again.",
+        variant: "destructive"
+      })
     } finally {
       setSubmitting(false)
     }
@@ -450,7 +481,7 @@ export default function StudentAssignmentWorkspacePage() {
   const submission = studentSubmission || currentSubmission
 
   // Check if assignment is read-only (submitted or graded, but not returned for resubmission)
-  const isReadOnly = assignment?.status === 'submitted' || assignment?.status === 'graded'
+  const isReadOnly = isSubmitted || assignment?.status === 'submitted' || assignment?.status === 'graded'
 
   const renderContentEditor = () => {
     if (!assignment) return null
@@ -1031,7 +1062,7 @@ export default function StudentAssignmentWorkspacePage() {
           )}
           
           {/* Submission status */}
-          {assignment?.status === 'submitted' && (
+          {(isSubmitted || assignment?.status === 'submitted') && (
             <Badge className="bg-blue-600/20 text-blue-300 border-blue-600/30">
               <CheckCircle className="h-3 w-3 mr-1" />
               Submitted
@@ -1155,8 +1186,8 @@ export default function StudentAssignmentWorkspacePage() {
                 <>
                   <Button 
                     onClick={handleSave} 
-                    disabled={saving}
-                    variant="outline" 
+                    disabled={saving || isSubmitted || assignment?.status === 'submitted'}
+                    variant="outline"
                     className="w-full bg-white/10 hover:bg-white/20 text-white border-white/20"
                   >
                     <Save className="h-4 w-4 mr-2" />
@@ -1165,11 +1196,11 @@ export default function StudentAssignmentWorkspacePage() {
                   
                   <Button 
                     onClick={handleSubmit} 
-                    disabled={submitting || assignment?.status === 'submitted'}
+                    disabled={submitting || isSubmitted || assignment?.status === 'submitted'}
                     className="w-full"
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    {submitting ? 'Submitting...' : assignment?.status === 'submitted' ? 'Already Submitted' : 'Submit Assignment'}
+                    {submitting ? 'Submitting...' : (isSubmitted || assignment?.status === 'submitted') ? 'Already Submitted' : 'Submit Assignment'}
                   </Button>
                 </>
               )}
@@ -1194,7 +1225,7 @@ export default function StudentAssignmentWorkspacePage() {
                 </div>
               )}
               
-              {isReadOnly && assignment?.status === 'submitted' && (
+              {isReadOnly && (isSubmitted || assignment?.status === 'submitted') && (
                 <div className="text-center p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <CheckCircle className="h-5 w-5 text-blue-400" />
