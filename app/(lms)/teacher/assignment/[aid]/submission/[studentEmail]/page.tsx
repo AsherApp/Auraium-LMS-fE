@@ -389,24 +389,65 @@ export default function TeacherSubmissionDetailPage() {
                   <div>
                     <h4 className="font-medium text-white mb-3 flex items-center gap-2">
                       <Upload className="h-4 w-4 text-indigo-400" />
-                      Uploaded Files
+                      Uploaded Files ({submission.uploaded_files.length})
                     </h4>
                     <div className="space-y-2">
-                      {submission.uploaded_files.map((file: any, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <File className="h-4 w-4 text-slate-400" />
-                            <span className="text-slate-300">{file.name || `File ${index + 1}`}</span>
+                      {submission.uploaded_files.map((file: any, index: number) => {
+                        const getFileIcon = (file: any) => {
+                          const type = file.type || ''
+                          if (type.startsWith('image/')) return <Image className="h-4 w-4 text-green-400" />
+                          if (type.startsWith('video/')) return <Video className="h-4 w-4 text-blue-400" />
+                          if (type.startsWith('audio/')) return <Music className="h-4 w-4 text-purple-400" />
+                          if (type.includes('pdf') || type.includes('document')) return <FileText className="h-4 w-4 text-red-400" />
+                          if (type.includes('code') || type.includes('text')) return <Code className="h-4 w-4 text-yellow-400" />
+                          if (type.includes('archive') || type.includes('zip')) return <Archive className="h-4 w-4 text-orange-400" />
+                          return <File className="h-4 w-4 text-slate-400" />
+                        }
+                        
+                        const formatFileSize = (bytes: number) => {
+                          if (bytes === 0) return '0 Bytes'
+                          const k = 1024
+                          const sizes = ['Bytes', 'KB', 'MB', 'GB']
+                          const i = Math.floor(Math.log(bytes) / Math.log(k))
+                          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+                        }
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              {getFileIcon(file)}
+                              <div>
+                                <span className="text-white font-medium">{file.name || `File ${index + 1}`}</span>
+                                <div className="text-slate-400 text-sm">
+                                  {file.size ? formatFileSize(file.size) : 'Unknown size'} • {file.type || 'Unknown type'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {file.url ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-slate-400 hover:text-white"
+                                  onClick={() => window.open(file.url, '_blank')}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <div className="text-slate-500 text-sm">
+                                  File metadata only
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-slate-400 hover:text-white"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                        )
+                      })}
+                    </div>
+                    <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <p className="text-blue-400 text-sm">
+                        <strong>Note:</strong> Files are stored as metadata. For full file viewing functionality, 
+                        implement a file storage service (AWS S3, Google Cloud Storage, etc.) to store actual file content.
+                      </p>
                     </div>
                   </div>
                 )}

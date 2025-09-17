@@ -229,7 +229,7 @@ export default function StudentAssignmentWorkspacePage() {
         code_submission: content.code_submission,
         peer_review_content: content.peer_review,
         quiz_answers: content.quiz,
-        uploaded_files: content.file_upload,
+        uploaded_files: serializeFiles(content.file_upload || []),
         response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
       
@@ -265,7 +265,7 @@ export default function StudentAssignmentWorkspacePage() {
         code_submission: content.code_submission,
         peer_review_content: content.peer_review,
         quiz_answers: content.quiz,
-        uploaded_files: content.file_upload,
+        uploaded_files: serializeFiles(content.file_upload || []),
         response: content.essay || content.project || content.discussion || content.code_submission || content.presentation || ''
       }
       
@@ -434,8 +434,8 @@ export default function StudentAssignmentWorkspacePage() {
     }
   }
 
-  const getFileIcon = (file: File) => {
-    const type = file.type
+  const getFileIcon = (file: File | any) => {
+    const type = file.type || file.mime_type || ''
     if (type.startsWith('image/')) return Image
     if (type.startsWith('video/')) return Video
     if (type.startsWith('audio/')) return Music
@@ -451,6 +451,19 @@ export default function StudentAssignmentWorkspacePage() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  // Convert File objects to serializable format
+  const serializeFiles = (files: File[]) => {
+    return files.map(file => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified,
+      // For now, we'll store file metadata and handle actual file upload separately
+      // In a real implementation, you'd upload to a file storage service first
+      url: null // This would be the uploaded file URL
+    }))
   }
 
   const getWordCount = (text: string) => {
@@ -550,13 +563,15 @@ export default function StudentAssignmentWorkspacePage() {
                 <h4 className="text-white font-medium">Uploaded Files ({content.file_upload.length})</h4>
                 {content.file_upload.map((file, index) => {
                   const Icon = getFileIcon(file)
+                  const fileName = file.name || file.filename || 'Unknown file'
+                  const fileSize = file.size || file.file_size || 0
                   return (
                     <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-3">
                         <Icon className="h-8 w-8 text-blue-400" />
                         <div>
-                          <p className="text-white font-medium">{file.name}</p>
-                          <p className="text-slate-400 text-sm">{formatFileSize(file.size)}</p>
+                          <p className="text-white font-medium">{fileName}</p>
+                          <p className="text-slate-400 text-sm">{formatFileSize(fileSize)}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
