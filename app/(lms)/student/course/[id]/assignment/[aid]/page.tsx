@@ -1174,7 +1174,7 @@ export default function StudentAssignmentWorkspacePage() {
                 </>
               )}
               
-              {isReadOnly && assignment?.status === 'graded' && (
+              {isReadOnly && assignment?.status === 'graded' && submission && (
                 <div className="text-center p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Award className="h-5 w-5 text-green-400" />
