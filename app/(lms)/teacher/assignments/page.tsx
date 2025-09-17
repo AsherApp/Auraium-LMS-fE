@@ -199,6 +199,12 @@ export default function TeacherAssignmentsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(assignment)}
+                          {assignment.submission_count > 0 && (
+                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {assignment.submission_count}
+                            </Badge>
+                          )}
                           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -223,19 +229,22 @@ export default function TeacherAssignmentsPage() {
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-3 text-center">
                         <div className="space-y-1">
-                          <div className="text-lg font-semibold text-white">
+                          <div className="text-lg font-semibold text-white flex items-center justify-center gap-1">
+                            <Users className="h-4 w-4" />
                             {assignment.submission_count || 0}
                           </div>
                           <div className="text-xs text-slate-400">Submissions</div>
                         </div>
                         <div className="space-y-1">
-                          <div className="text-lg font-semibold text-orange-400">
+                          <div className="text-lg font-semibold text-orange-400 flex items-center justify-center gap-1">
+                            <AlertCircle className="h-4 w-4" />
                             {(assignment.submission_count || 0) - (assignment.graded_count || 0)}
                           </div>
                           <div className="text-xs text-slate-400">Pending</div>
                         </div>
                         <div className="space-y-1">
-                          <div className="text-lg font-semibold text-green-400">
+                          <div className="text-lg font-semibold text-green-400 flex items-center justify-center gap-1">
+                            <CheckCircle className="h-4 w-4" />
                             {assignment.avg_grade ? assignment.avg_grade.toFixed(1) : '0.0'}
                           </div>
                           <div className="text-xs text-slate-400">Avg Grade</div>
