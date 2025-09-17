@@ -325,7 +325,12 @@ export default function TeacherSubmissionDetailPage() {
                     <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                       <QuizViewer
                         questions={assignment.settings.quiz_questions}
-                        submission={submission.quiz_answers}
+                        submission={Object.entries(submission.quiz_answers || {}).map(([questionId, answer]) => ({
+                          questionId,
+                          answer,
+                          isCorrect: false, // Will be calculated by QuizViewer
+                          pointsEarned: 0 // Will be calculated by QuizViewer
+                        }))}
                         isTeacherView={true}
                       />
                     </div>
