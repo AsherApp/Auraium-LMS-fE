@@ -132,21 +132,23 @@ export default function StudentCourseDetailPage() {
   }
 
   const getAssignmentStatus = (assignment: any) => {
-    // TODO: Fetch real submission data for this assignment
-    // For now, return 'not_started' until we implement submission tracking
-    return 'not_started'
+    // Use the assignment status field for accurate status display
+    return assignment.status || 'not_started'
   }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'graded':
         return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
+      case 'awaiting_response':
+        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Awaiting Response</Badge>
       case 'submitted':
         return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
       case 'in_progress':
         return <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">In Progress</Badge>
       case 'overdue':
         return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
+      case 'not_started':
       default:
         return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
     }

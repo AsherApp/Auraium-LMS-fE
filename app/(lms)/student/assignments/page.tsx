@@ -97,13 +97,13 @@ export default function StudentAssignmentsPage() {
     let matchesFilter = true
     switch (filterStatus) {
       case "pending":
-        matchesFilter = !assignment.is_submitted && assignment.status !== 'awaiting_response'
+        matchesFilter = assignment.status === 'not_started' || (!assignment.status && !assignment.is_submitted)
         break
       case "submitted":
-        matchesFilter = !!assignment.is_submitted && !assignment.is_graded && assignment.status !== 'awaiting_response'
+        matchesFilter = assignment.status === 'submitted'
         break
       case "overdue":
-        matchesFilter = !!assignment.is_overdue && !assignment.is_submitted
+        matchesFilter = !!assignment.is_overdue && (assignment.status === 'not_started' || !assignment.status)
         break
       case "awaiting_response":
         matchesFilter = assignment.status === 'awaiting_response'
@@ -116,18 +116,26 @@ export default function StudentAssignmentsPage() {
   })
 
   const getStatusBadge = (assignment: AssignmentWithSubmission) => {
-    if (assignment.is_graded) {
-      return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
-    } else if (assignment.status === 'awaiting_response') {
-      return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Awaiting Response</Badge>
-    } else if (assignment.is_submitted) {
-      return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
-    } else if (assignment.is_overdue) {
-      return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
-    } else if (!assignment.is_available) {
-      return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">Not Available</Badge>
-    } else {
-      return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
+    // Use the assignment status field for accurate status display
+    switch (assignment.status) {
+      case 'graded':
+        return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">Graded</Badge>
+      case 'awaiting_response':
+        return <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Awaiting Response</Badge>
+      case 'submitted':
+        return <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Submitted</Badge>
+      case 'not_started':
+      default:
+        // Check if assignment is overdue
+        if (assignment.is_overdue) {
+          return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Overdue</Badge>
+        }
+        // Check if assignment is not available yet
+        if (!assignment.is_available) {
+          return <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30">Not Available</Badge>
+        }
+        // Default to not started
+        return <Badge variant="outline" className="border-slate-500 text-slate-400">Not Started</Badge>
     }
   }
 
