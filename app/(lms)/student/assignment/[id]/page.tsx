@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAuthStore } from "@/store/auth-store"
 import { useAssignment, useMySubmission } from "@/services/assignments/hook"
 import { type Assignment } from "@/services/assignments/api"
-import { ArrowLeft, FileText, Award, Calendar, Clock, AlertTriangle, CheckCircle, Settings, BookOpen, Users, Star, Download, Link as LinkIcon, Layers, FolderOpen, BookMarked, Edit } from "lucide-react"
+import { ArrowLeft, FileText, Award, Calendar, Clock, AlertTriangle, CheckCircle, Settings, BookOpen, Users, Star, Download, Link as LinkIcon, Layers, FolderOpen, BookMarked, Edit, BarChart3, Eye } from "lucide-react"
 
 export default function StudentAssignmentDetailPage() {
   const params = useParams()

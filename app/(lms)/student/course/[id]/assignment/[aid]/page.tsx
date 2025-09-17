@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { useAuthStore } from "@/store/auth-store"
 import { useAssignment, useMySubmission, useSubmissionManagement } from "@/services/assignments/hook"
 import { type Assignment, type Submission } from "@/services/assignments/api"
+import { useToast } from "@/hooks/use-toast"
 import { RichTextEditor } from "@/components/shared/rich-text-editor"
 import { 
   ArrowLeft, 
@@ -54,6 +55,7 @@ export default function StudentAssignmentWorkspacePage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuthStore()
+  const { toast } = useToast()
   const assignmentId = params?.aid as string
   
   const { assignment, loading, error } = useAssignment(assignmentId)
