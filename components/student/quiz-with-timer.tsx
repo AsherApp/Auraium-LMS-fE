@@ -96,6 +96,24 @@ export function QuizWithTimer({ quiz, onComplete, onTimeExpired }: QuizWithTimer
     setAnswers(prev => ({ ...prev, [questionId]: answer }))
   }
 
+  const handleMultiSelectAnswer = (questionId: string, optionLetter: string) => {
+    if (submitted) return
+    setAnswers(prev => {
+      const currentAnswer = prev[questionId] || ''
+      const selectedAnswers = currentAnswer ? currentAnswer.split(',') : []
+      
+      if (selectedAnswers.includes(optionLetter)) {
+        // Remove the option if it's already selected
+        const newAnswers = selectedAnswers.filter(a => a !== optionLetter)
+        return { ...prev, [questionId]: newAnswers.join(',') }
+      } else {
+        // Add the option if it's not selected
+        const newAnswers = [...selectedAnswers, optionLetter]
+        return { ...prev, [questionId]: newAnswers.join(',') }
+      }
+    })
+  }
+
   const handleSubmit = () => {
     if (submitted) return
     
@@ -107,8 +125,22 @@ export function QuizWithTimer({ quiz, onComplete, onTimeExpired }: QuizWithTimer
     // Calculate score
     let correctAnswers = 0
     quiz.questions.forEach(question => {
-      if (answers[question.id] === question.correct_answer) {
-        correctAnswers++
+      const userAnswer = answers[question.id]
+      const correctAnswer = question.correct_answer
+      
+      if (question.type === 'multi-select') {
+        // For multi-select, compare arrays
+        const userAnswers = userAnswer ? userAnswer.split(',').sort() : []
+        const correctAnswersArray = correctAnswer ? correctAnswer.split(',').sort() : []
+        if (userAnswers.length === correctAnswersArray.length && 
+            userAnswers.every((answer, index) => answer === correctAnswersArray[index])) {
+          correctAnswers++
+        }
+      } else {
+        // For single choice and true/false
+        if (userAnswer === correctAnswer) {
+          correctAnswers++
+        }
       }
     })
 
@@ -206,7 +238,7 @@ export function QuizWithTimer({ quiz, onComplete, onTimeExpired }: QuizWithTimer
                 Q{index + 1}. {question.question}
               </div>
 
-              {question.type === 'multiple_choice' && question.options && (
+              {(question.type === 'multiple_choice' || question.type === 'multiple-choice') && question.options && (
                 <div className="space-y-2">
                   {question.options.map((option, optionIndex) => {
                     const optionLetter = String.fromCharCode(65 + optionIndex) // A, B, C, D
@@ -241,7 +273,7 @@ export function QuizWithTimer({ quiz, onComplete, onTimeExpired }: QuizWithTimer
                 </div>
               )}
 
-              {question.type === 'true_false' && (
+              {(question.type === 'true_false' || question.type === 'true-false') && (
                 <div className="flex gap-4">
                   <button
                     onClick={() => handleAnswerSelect(question.id, 'true')}
@@ -281,6 +313,42 @@ export function QuizWithTimer({ quiz, onComplete, onTimeExpired }: QuizWithTimer
                   >
                     False
                   </button>
+                </div>
+              )}
+
+              {question.type === 'multi-select' && question.options && (
+                <div className="space-y-2">
+                  {question.options.map((option, optionIndex) => {
+                    const optionLetter = String.fromCharCode(65 + optionIndex) // A, B, C, D
+                    const selectedAnswers = selectedAnswer ? selectedAnswer.split(',') : []
+                    const isSelected = selectedAnswers.includes(optionLetter)
+                    const isCorrectOption = submitted && question.correct_answer && question.correct_answer.includes(optionLetter)
+                    const isWrongSelected = submitted && isSelected && question.correct_answer && !question.correct_answer.includes(optionLetter)
+
+                    return (
+                      <button
+                        key={optionIndex}
+                        onClick={() => handleMultiSelectAnswer(question.id, optionLetter)}
+                        disabled={submitted}
+                        className={`w-full text-left rounded-md border px-4 py-3 transition-colors ${
+                          isSelected
+                            ? "border-blue-400 bg-blue-600/20 text-white"
+                            : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                        } ${
+                          submitted
+                            ? isCorrectOption
+                              ? "border-green-400 bg-green-600/20"
+                              : isWrongSelected
+                              ? "border-red-400 bg-red-600/20 opacity-70"
+                              : ""
+                            : ""
+                        }`}
+                      >
+                        <span className="font-medium mr-2">{optionLetter}.</span>
+                        {option}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
 
