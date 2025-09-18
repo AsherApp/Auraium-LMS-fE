@@ -27,7 +27,9 @@ import {
   Target,
   Award,
   ExternalLink,
-  Play
+  Play,
+  MessageSquare,
+  BarChart2
 } from "lucide-react"
 
 interface EnhancedStudyAreaProps {
@@ -444,13 +446,13 @@ export function EnhancedStudyArea({ courseId, title }: EnhancedStudyAreaProps) {
                   />
                 )}
 
-                {currentLesson.type === 'quiz' && currentLesson.content?.quiz_questions && (
+                {currentLesson.type === 'quiz' && currentLesson.content?.quiz?.questions && (
                   <QuizWithTimer
-                    questions={currentLesson.content.quiz_questions}
-                    timeLimit={currentLesson.content.time_limit}
-                    passingScore={currentLesson.content.passing_score || 70}
+                    questions={currentLesson.content.quiz.questions}
+                    timeLimit={currentLesson.content.quiz?.time_limit}
+                    passingScore={currentLesson.content.quiz?.passing_score || 70}
                     onSubmit={(score, total, timeTaken) => {
-                      const result = submitQuiz(score, total, currentLesson.content.passing_score || 70)
+                      const result = submitQuiz(score, total, currentLesson.content.quiz?.passing_score || 70)
                       if (result.passed) {
                         toast({
                           title: "Quiz Passed! 🎉",
@@ -468,6 +470,95 @@ export function EnhancedStudyArea({ courseId, title }: EnhancedStudyAreaProps) {
                     }}
                   />
                 )}
+
+                {currentLesson.type === 'discussion' && currentLesson.content?.discussion && (
+                  <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700">
+                    <div className="flex items-center gap-3 mb-4">
+                      <MessageSquare className="h-6 w-6 text-blue-400" />
+                      <h3 className="text-lg font-semibold text-white">Discussion Topic</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-white mb-2">Topic:</h4>
+                        <p className="text-slate-300">{currentLesson.content.discussion.topic || 'No topic provided'}</p>
+                      </div>
+                      {currentLesson.content.discussion.description && (
+                        <div>
+                          <h4 className="font-medium text-white mb-2">Description:</h4>
+                          <p className="text-slate-300">{currentLesson.content.discussion.description}</p>
+                        </div>
+                      )}
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+                        <p className="text-blue-300 text-sm">
+                          💡 This is a discussion topic. You can participate in the course discussions section.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentLesson.type === 'poll' && currentLesson.content?.poll && (
+                  <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-700">
+                    <div className="flex items-center gap-3 mb-4">
+                      <BarChart2 className="h-6 w-6 text-green-400" />
+                      <h3 className="text-lg font-semibold text-white">Poll Question</h3>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium text-white mb-2">Question:</h4>
+                        <p className="text-slate-300">{currentLesson.content.poll.question || 'No question provided'}</p>
+                      </div>
+                      {currentLesson.content.poll.options && currentLesson.content.poll.options.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-white mb-2">Options:</h4>
+                          <ul className="space-y-2">
+                            {currentLesson.content.poll.options.map((option: string, index: number) => (
+                              <li key={index} className="flex items-center gap-2 text-slate-300">
+                                <span className="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs font-medium">
+                                  {String.fromCharCode(65 + index)}
+                                </span>
+                                {option}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+                        <p className="text-green-300 text-sm">
+                          📊 This is a poll question. You can participate in the course polls section.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback for unsupported or empty content */}
+                {!currentLesson.content || 
+                 (currentLesson.type === 'video' && !currentLesson.content?.video?.url) ||
+                 (currentLesson.type === 'text' && !currentLesson.content?.text_content) ||
+                 (currentLesson.type === 'file' && !currentLesson.content?.file?.url) ||
+                 (currentLesson.type === 'quiz' && !currentLesson.content?.quiz?.questions) ||
+                 (currentLesson.type === 'discussion' && !currentLesson.content?.discussion) ||
+                 (currentLesson.type === 'poll' && !currentLesson.content?.poll) ? (
+                  <div className="bg-slate-800/50 rounded-lg p-8 border border-slate-700 text-center">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="p-4 rounded-full bg-slate-700/50">
+                        <FileText className="h-8 w-8 text-slate-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-white mb-2">Content Not Available</h3>
+                        <p className="text-slate-400">
+                          {currentLesson.type === 'video' && 'No video content has been uploaded yet.'}
+                          {currentLesson.type === 'text' && 'No text content has been added yet.'}
+                          {currentLesson.type === 'file' && 'No file has been uploaded yet.'}
+                          {currentLesson.type === 'quiz' && 'No quiz questions have been created yet.'}
+                          {currentLesson.type === 'discussion' && 'No discussion topic has been set up yet.'}
+                          {currentLesson.type === 'poll' && 'No poll question has been created yet.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {/* Completion Status */}
@@ -509,6 +600,18 @@ export function EnhancedStudyArea({ courseId, title }: EnhancedStudyAreaProps) {
                     Attempts: {contentCompletion.quizAttempts}/2 | 
                     Score: {Math.round(contentCompletion.quizScore)}% | 
                     Passing: {contentCompletion.quizPassingScore}%
+                  </div>
+                )}
+                
+                {currentLesson.type === 'discussion' && (
+                  <div className="text-sm text-slate-400">
+                    Discussion Topic - Click to participate in course discussions
+                  </div>
+                )}
+                
+                {currentLesson.type === 'poll' && (
+                  <div className="text-sm text-slate-400">
+                    Poll Question - Click to participate in course polls
                   </div>
                 )}
               </div>
