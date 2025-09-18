@@ -129,51 +129,51 @@ export default function TeacherAssignmentsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* Total Assignments */}
         <AnimationWrapper delay={0.1}>
-          <GlassCard className="p-6 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-32">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <FileText className="h-6 w-6 text-blue-400" />
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-36 flex flex-col justify-center">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <FileText className="h-5 w-5 text-blue-400" />
             </div>
-            <div className="text-2xl font-bold text-white mb-1">{assignments.length}</div>
-            <div className="text-xs text-slate-400">Total Assignments</div>
+            <div className="text-xl font-bold text-white mb-1">{assignments.length}</div>
+            <div className="text-xs text-slate-400 leading-tight">Total Assignments</div>
           </GlassCard>
         </AnimationWrapper>
         
         {/* Pending Grading */}
         <AnimationWrapper delay={0.2}>
-          <GlassCard className="p-6 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-32">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-orange-500/20 flex items-center justify-center">
-              <Clock className="h-6 w-6 text-orange-400" />
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-36 flex flex-col justify-center">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-orange-500/20 flex items-center justify-center">
+              <Clock className="h-5 w-5 text-orange-400" />
             </div>
-            <div className="text-2xl font-bold text-orange-400 mb-1">
+            <div className="text-xl font-bold text-orange-400 mb-1">
               {assignments.reduce((sum, a) => sum + ((a.submission_count || 0) - (a.graded_count || 0)), 0)}
             </div>
-            <div className="text-xs text-slate-400">Pending Grading</div>
+            <div className="text-xs text-slate-400 leading-tight">Pending Grading</div>
           </GlassCard>
         </AnimationWrapper>
         
         {/* Total Submissions */}
         <AnimationWrapper delay={0.3}>
-          <GlassCard className="p-6 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-32">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-500/20 flex items-center justify-center">
-              <Users className="h-6 w-6 text-green-400" />
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-36 flex flex-col justify-center">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Users className="h-5 w-5 text-green-400" />
             </div>
-            <div className="text-2xl font-bold text-green-400 mb-1">
+            <div className="text-xl font-bold text-green-400 mb-1">
               {assignments.reduce((sum, a) => sum + (a.submission_count || 0), 0)}
             </div>
-            <div className="text-xs text-slate-400">Total Submissions</div>
+            <div className="text-xs text-slate-400 leading-tight">Total Submissions</div>
           </GlassCard>
         </AnimationWrapper>
         
         {/* Overdue */}
         <AnimationWrapper delay={0.4}>
-          <GlassCard className="p-6 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-32">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-500/20 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-red-400" />
+          <GlassCard className="p-4 text-center hover:bg-white/5 transition-all duration-300 hover:scale-105 h-36 flex flex-col justify-center">
+            <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-red-500/20 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-red-400" />
             </div>
-            <div className="text-2xl font-bold text-red-400 mb-1">
+            <div className="text-xl font-bold text-red-400 mb-1">
               {assignments.filter(a => a.due_at && new Date(a.due_at) < new Date()).length}
             </div>
-            <div className="text-xs text-slate-400">Overdue</div>
+            <div className="text-xs text-slate-400 leading-tight">Overdue</div>
           </GlassCard>
         </AnimationWrapper>
       </div>
