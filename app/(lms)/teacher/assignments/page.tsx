@@ -189,7 +189,7 @@ export default function TeacherAssignmentsPage() {
                 const hasPendingSubmissions = (assignment.submission_count || 0) > (assignment.graded_count || 0)
                 return (
                 <AnimationWrapper key={assignment.id} delay={index * 0.1}>
-                  <GlassCard className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105 relative">
+                  <GlassCard className="p-4 hover:bg-white/10 transition-all duration-300 hover:scale-105 relative">
                     {/* Interactive Status Dot */}
                     <div className="absolute -top-2 -right-2 z-10 group">
                       <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-all duration-300 group-hover:scale-125 ${
@@ -231,72 +231,72 @@ export default function TeacherAssignmentsPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      {/* Header */}
+                    <div className="space-y-3">
+                      {/* Header with Title and Menu */}
                       <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-semibold text-white truncate mb-1">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <h3 className="text-base font-semibold text-white truncate leading-tight">
                             {assignment.title}
                           </h3>
-                          <p className="text-xs text-slate-400">Course: {assignment.course_title || assignment.course_id}</p>
+                          <p className="text-xs text-slate-400 mt-0.5 truncate">
+                            {assignment.course_title || assignment.course_id}
+                          </p>
                         </div>
+                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1 flex-shrink-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      {/* Assignment Type and Description */}
+                      <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
+                          <div className="p-1.5 bg-white/10 rounded-md">
+                            {getAssignmentIcon(assignment.type)}
+                          </div>
+                          <span className="text-xs text-slate-300 capitalize font-medium">
+                            {assignment.type.replace('_', ' ')}
+                          </span>
                         </div>
+                        <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                          {assignment.description}
+                        </p>
                       </div>
 
-                      {/* Assignment Type */}
-                      <div className="flex items-center gap-2">
-                        <div className="p-2 bg-white/10 rounded-lg">
-                          {getAssignmentIcon(assignment.type)}
+                      {/* Stats and Due Date */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <Users className="h-3.5 w-3.5" />
+                            <span>{assignment.submission_count || 0} submissions</span>
+                          </div>
+                          {assignment.avg_grade && assignment.avg_grade > 0 && (
+                            <div className="flex items-center gap-1.5 text-xs text-green-400">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              <span>{assignment.avg_grade.toFixed(1)} avg</span>
+                            </div>
+                          )}
                         </div>
-                        <Badge variant="outline" className="border-slate-500 text-slate-300 capitalize">
-                          {assignment.type}
-                        </Badge>
-                      </div>
-
-                      {/* Description */}
-                      <p className="text-sm text-slate-300 line-clamp-2">
-                        {assignment.description}
-                      </p>
-
-                      {/* Stats - Simplified */}
-                      <div className="flex items-center justify-between text-sm text-slate-400">
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>{assignment.submission_count || 0} submissions</span>
-                        </div>
-                        {assignment.avg_grade && assignment.avg_grade > 0 && (
-                          <div className="flex items-center gap-1 text-green-400">
-                            <CheckCircle className="h-4 w-4" />
-                            <span>{assignment.avg_grade.toFixed(1)} avg</span>
+                        {assignment.due_at && (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <Clock className="h-3.5 w-3.5" />
+                            <span>Due {new Date(assignment.due_at).toLocaleDateString()}</span>
                           </div>
                         )}
                       </div>
 
-                      {/* Due Date */}
-                      {assignment.due_at && (
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                          <Clock className="h-4 w-4" />
-                          <span>Due {new Date(assignment.due_at).toLocaleDateString()}</span>
-                        </div>
-                      )}
-
                       {/* Actions */}
-                      <div className="flex gap-2 pt-2">
+                      <div className="flex gap-1.5 pt-1">
                         <Link href={`/teacher/assignment/${assignment.id}`} className="flex-1">
-                          <Button size="sm" className="w-full bg-blue-600/80 hover:bg-blue-600 text-white">
-                            <Eye className="h-4 w-4 mr-2" />
+                          <Button size="sm" className="w-full bg-blue-600/80 hover:bg-blue-600 text-white text-xs h-8">
+                            <Eye className="h-3.5 w-3.5 mr-1.5" />
                             View Details
                           </Button>
                         </Link>
-                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10">
-                          <Copy className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10 h-8 w-8 p-0">
+                          <Copy className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0">
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
