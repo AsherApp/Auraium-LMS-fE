@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { AssignmentAPI, type Assignment, type Submission, type CreateAssignmentData, type UpdateAssignmentData, type CreateSubmissionData, type UpdateSubmissionData, type GradeSubmissionData } from './api'
 import { useToast } from '@/hooks/use-toast'
-import { useSyncActions } from '../realtime/global-sync'
 
 // Enhanced hook with optimistic updates and real-time feedback
 export function useRealtimeAssignments() {
@@ -9,7 +8,8 @@ export function useRealtimeAssignments() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
-  const { addAssignmentUpdate } = useSyncActions()
+  // Temporarily disabled global sync to prevent infinite loops
+  // const addAssignmentUpdate = useSyncActions().addAssignmentUpdate
 
   const fetchAssignments = useCallback(async () => {
     try {
@@ -60,7 +60,7 @@ export function useRealtimeAssignments() {
       setAssignments(prev => prev.map(a => a.id === tempId ? newAssignment : a))
       
       // Notify other components of the update
-      addAssignmentUpdate(newAssignment.id, 'created', newAssignment)
+      // addAssignmentUpdate(newAssignment.id, 'created', newAssignment)
       
       toast({
         title: "Assignment Created",
@@ -96,7 +96,7 @@ export function useRealtimeAssignments() {
       setAssignments(prev => prev.map(a => a.id === id ? updatedAssignment : a))
       
       // Notify other components of the update
-      addAssignmentUpdate(updatedAssignment.id, 'updated', updatedAssignment)
+      // addAssignmentUpdate(updatedAssignment.id, 'updated', updatedAssignment)
       
       toast({
         title: "Assignment Updated",
@@ -130,7 +130,7 @@ export function useRealtimeAssignments() {
       await AssignmentAPI.deleteAssignment(id)
       
       // Notify other components of the update
-      addAssignmentUpdate(id, 'deleted', originalAssignment)
+      // addAssignmentUpdate(id, 'deleted', originalAssignment)
       
       toast({
         title: "Assignment Deleted",

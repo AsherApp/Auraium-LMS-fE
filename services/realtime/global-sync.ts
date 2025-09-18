@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
+import { useCallback } from 'react'
 
 // Global state for real-time updates
 interface GlobalSyncState {
@@ -178,18 +179,21 @@ if (typeof window !== 'undefined') {
 
 // Hook for subscribing to specific update types
 export function useSyncUpdates(type: keyof Omit<GlobalSyncState, 'addAssignmentUpdate' | 'addSubmissionUpdate' | 'addDiscussionUpdate' | 'addPostUpdate' | 'addCourseUpdate' | 'addEnrollmentUpdate' | 'clearUpdates' | 'clearOldUpdates'>) {
-  return useGlobalSync(state => state[type])
+  return useGlobalSync(useCallback((state) => state[type], [type]))
 }
+
+// Stable selector to prevent infinite loops
+const syncActionsSelector = (state: GlobalSyncState) => ({
+  addAssignmentUpdate: state.addAssignmentUpdate,
+  addSubmissionUpdate: state.addSubmissionUpdate,
+  addDiscussionUpdate: state.addDiscussionUpdate,
+  addPostUpdate: state.addPostUpdate,
+  addCourseUpdate: state.addCourseUpdate,
+  addEnrollmentUpdate: state.addEnrollmentUpdate,
+  clearUpdates: state.clearUpdates
+})
 
 // Hook for triggering updates
 export function useSyncActions() {
-  return useGlobalSync(state => ({
-    addAssignmentUpdate: state.addAssignmentUpdate,
-    addSubmissionUpdate: state.addSubmissionUpdate,
-    addDiscussionUpdate: state.addDiscussionUpdate,
-    addPostUpdate: state.addPostUpdate,
-    addCourseUpdate: state.addCourseUpdate,
-    addEnrollmentUpdate: state.addEnrollmentUpdate,
-    clearUpdates: state.clearUpdates
-  }))
+  return useGlobalSync(syncActionsSelector)
 }
