@@ -458,9 +458,9 @@ export function CertificateConfiguration({ courseId, onSave }: CertificateConfig
                   <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-800 border-slate-700">
                     {TEMPLATES.map((template) => (
-                      <SelectItem key={template.value} value={template.value}>
+                      <SelectItem key={template.value} value={template.value} className="bg-slate-800 hover:bg-slate-700 text-white">
                         <div>
                           <div className="font-medium">{template.label}</div>
                           <div className="text-sm text-slate-400">{template.description}</div>

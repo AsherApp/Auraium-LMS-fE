@@ -191,7 +191,7 @@ export default function TeacherLiveClass() {
   )
   
   const pastSessions = sessions.filter(session => 
-    session.status === 'ended' || (session.status === 'scheduled' && new Date(session.startAt) < new Date())
+    session.status === 'ended' || session.status === 'completed'
   )
 
   const getStatusBadge = (session: any) => {
