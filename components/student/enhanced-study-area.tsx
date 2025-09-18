@@ -448,10 +448,13 @@ export function EnhancedStudyArea({ courseId, title }: EnhancedStudyAreaProps) {
 
                 {currentLesson.type === 'quiz' && currentLesson.content?.quiz?.questions && (
                   <QuizWithTimer
-                    questions={currentLesson.content.quiz.questions}
-                    timeLimit={currentLesson.content.quiz?.time_limit}
-                    passingScore={currentLesson.content.quiz?.passing_score || 70}
-                    onSubmit={(score, total, timeTaken) => {
+                    quiz={{
+                      questions: currentLesson.content.quiz.questions,
+                      time_limit_minutes: currentLesson.content.quiz?.time_limit || 0,
+                      passing_score: currentLesson.content.quiz?.passing_score || 70,
+                      max_attempts: 2
+                    }}
+                    onComplete={(score, total, timeTaken) => {
                       const result = submitQuiz(score, total, currentLesson.content.quiz?.passing_score || 70)
                       if (result.passed) {
                         toast({
@@ -467,6 +470,13 @@ export function EnhancedStudyArea({ courseId, title }: EnhancedStudyAreaProps) {
                           variant: "destructive"
                         })
                       }
+                    }}
+                    onTimeExpired={() => {
+                      toast({
+                        title: "Time's Up!",
+                        description: "The quiz time limit has been reached.",
+                        variant: "destructive"
+                      })
                     }}
                   />
                 )}
