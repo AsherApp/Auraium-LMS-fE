@@ -71,8 +71,8 @@ const AttendanceAnalysis = ({ sessionId }: { sessionId: string }) => {
         setAttendanceData(reportResponse)
         
         // Fetch individual attendance records
-        const recordsResponse = await http<{ items: any[] }>(`/api/live-attendance/session/${sessionId}/records`)
-        setAttendanceRecords(recordsResponse.items || [])
+        const recordsResponse = await http<any[]>(`/api/live-attendance/session/${sessionId}/records`)
+        setAttendanceRecords(recordsResponse || [])
         
       } catch (error) {
         console.error('Failed to fetch attendance data:', error)
@@ -353,7 +353,7 @@ export default function TeacherLiveClassDetail() {
         
         // Fetch session recordings
         const recordingsResponse = await http<any>(`/api/recordings/session/${sessionId}`)
-        setSessionRecordings(recordingsResponse.items || [])
+        setSessionRecordings(recordingsResponse || [])
       } catch (err) {
         console.error("Failed to fetch session data:", err)
       }
