@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AnimationWrapper, StaggeredAnimationWrapper } from "@/components/shared/animation-wrapper"
+import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { 
   Plus, 
   Search, 
@@ -41,7 +42,9 @@ export default function TeacherAssignmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "pending" | "graded" | "overdue">("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [activeTab, setActiveTab] = useState<"assignments" | "classwork">("assignments")
+  
+  // Use FluidTabs hook for better tab management
+  const { activeTab, handleTabChange } = useFluidTabs("assignments")
   
   // Classwork state
   const [liveSessions, setLiveSessions] = useState<any[]>([])
@@ -235,40 +238,26 @@ export default function TeacherAssignmentsPage() {
       {/* Main Navigation */}
       <AnimationWrapper delay={0.1}>
         <div className="flex justify-center">
-          <div className="bg-white/5 rounded-lg p-1">
-            <div className="flex items-center gap-2">
-              <Button
-                variant={activeTab === "assignments" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setActiveTab("assignments")}
-                className={activeTab === "assignments" 
-                  ? "bg-blue-600/80 text-white" 
-                  : "text-slate-300 hover:text-white hover:bg-white/10"
-                }
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Assignments
-                <Badge variant="secondary" className="bg-white/20 text-white ml-2">
-                {assignments.length}
-              </Badge>
-              </Button>
-              <Button
-                variant={activeTab === "classwork" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setActiveTab("classwork")}
-                className={activeTab === "classwork" 
-                  ? "bg-blue-600/80 text-white" 
-                  : "text-slate-300 hover:text-white hover:bg-white/10"
-                }
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                Classwork
-                <Badge variant="secondary" className="bg-white/20 text-white ml-2">
-                  {classwork.length}
-                </Badge>
-              </Button>
-            </div>
-          </div>
+          <FluidTabs
+            tabs={[
+              {
+                id: "assignments",
+                label: "Assignments",
+                icon: <FileText className="h-4 w-4" />,
+                badge: assignments.length
+              },
+              {
+                id: "classwork", 
+                label: "Classwork",
+                icon: <BookOpen className="h-4 w-4" />,
+                badge: classwork.length
+              }
+            ]}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            variant="default"
+            width="auto"
+          />
         </div>
       </AnimationWrapper>
 

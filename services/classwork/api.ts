@@ -1,4 +1,4 @@
-import { http } from '../http'
+import { http, httpClient } from '../http'
 
 export interface Classwork {
   id: string
@@ -26,12 +26,12 @@ export interface ClassworkSubmission {
 export class ClassworkAPI {
   // Get all classwork for a teacher
   static async getAll(): Promise<{ items: Classwork[] }> {
-    return http.get('/classwork')
+    return httpClient.get('/api/classwork')
   }
 
   // Get classwork for a specific session
   static async getBySession(sessionId: string): Promise<{ items: Classwork[] }> {
-    return http.get(`/classwork/session/${sessionId}`)
+    return httpClient.get(`/api/classwork/session/${sessionId}`)
   }
 
   // Create classwork for a session
@@ -40,7 +40,7 @@ export class ClassworkAPI {
     description: string
     due_at?: string
   }): Promise<Classwork> {
-    return http.post(`/classwork/session/${sessionId}`, data)
+    return httpClient.post(`/api/classwork/session/${sessionId}`, data)
   }
 
   // Update classwork
@@ -49,17 +49,17 @@ export class ClassworkAPI {
     description: string
     due_at?: string
   }): Promise<Classwork> {
-    return http.put(`/classwork/${classworkId}`, data)
+    return httpClient.put(`/api/classwork/${classworkId}`, data)
   }
 
   // Delete classwork
   static async delete(classworkId: string): Promise<{ success: boolean }> {
-    return http.delete(`/classwork/${classworkId}`)
+    return httpClient.delete(`/api/classwork/${classworkId}`)
   }
 
   // Get classwork submissions
   static async getSubmissions(classworkId: string): Promise<{ items: ClassworkSubmission[] }> {
-    return http.get(`/classwork/${classworkId}/submissions`)
+    return httpClient.get(`/api/classwork/${classworkId}/submissions`)
   }
 
   // Grade classwork submission
@@ -68,6 +68,6 @@ export class ClassworkAPI {
     submissionId: string, 
     data: { grade: number; feedback: string }
   ): Promise<ClassworkSubmission> {
-    return http.put(`/classwork/${classworkId}/submissions/${submissionId}/grade`, data)
+    return httpClient.put(`/api/classwork/${classworkId}/submissions/${submissionId}/grade`, data)
   }
 }

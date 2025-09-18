@@ -332,7 +332,7 @@ const studentItems = [
                   background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
                   backgroundClip: "text",
                   WebkitBackgroundClip: "text",
-                  color: "transparent"
+                  color: "rgba(0,0,0,0)"
                 }}
               >
                 AuraiumLMS
@@ -428,7 +428,7 @@ const studentItems = [
                     background: "linear-gradient(45deg, #3b82f6, #8b5cf6)",
                     backgroundClip: "text",
                     WebkitBackgroundClip: "text",
-                    color: "transparent"
+                    color: "rgba(0,0,0,0)"
                   }}
                   transition={{ duration: 0.3 }}
                 >
@@ -544,7 +544,7 @@ const studentItems = [
                                     background: isActive ? "linear-gradient(45deg, #3b82f6, #8b5cf6)" : "linear-gradient(45deg, #ffffff, #e2e8f0)",
                                     backgroundClip: "text",
                                     WebkitBackgroundClip: "text",
-                                    color: "transparent"
+                                    color: "rgba(0,0,0,0)"
                                   }}
                                   transition={{ duration: 0.3 }}
                                 >
