@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { GlassCard } from "@/components/shared/glass-card"
 import { Button } from "@/components/ui/button"
@@ -22,7 +22,12 @@ import {
   Eye,
   Users,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Video,
+  BookOpen,
+  Calendar,
+  Edit,
+  Send
 } from "lucide-react"
 import { useRealtimeAssignments } from "@/services/assignments/realtime-hook"
 import { type Assignment } from "@/services/assignments/api"
@@ -34,6 +39,92 @@ export default function TeacherAssignmentsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "pending" | "graded" | "overdue">("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [activeTab, setActiveTab] = useState<"assignments" | "classwork">("assignments")
+  
+  // Classwork state
+  const [liveSessions, setLiveSessions] = useState<any[]>([])
+  const [classwork, setClasswork] = useState<any[]>([])
+  const [showClassworkDialog, setShowClassworkDialog] = useState(false)
+  const [selectedSession, setSelectedSession] = useState<any>(null)
+  const [classworkForm, setClassworkForm] = useState({
+    title: "",
+    description: "",
+    due_at: ""
+  })
+
+  // Fetch live sessions and classwork
+  useEffect(() => {
+    if (activeTab === "classwork") {
+      fetchLiveSessions()
+      fetchClasswork()
+    }
+  }, [activeTab])
+
+  const fetchLiveSessions = async () => {
+    try {
+      const response = await fetch('/api/live', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setLiveSessions(data.items || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch live sessions:', error)
+    }
+  }
+
+  const fetchClasswork = async () => {
+    try {
+      // Get all classwork from all sessions
+      const allClasswork = []
+      for (const session of liveSessions) {
+        const response = await fetch(`/api/live/${session.id}/classwork`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          const sessionClasswork = (data.items || []).map((item: any) => ({
+            ...item,
+            session_title: session.title,
+            session_id: session.id
+          }))
+          allClasswork.push(...sessionClasswork)
+        }
+      }
+      setClasswork(allClasswork)
+    } catch (error) {
+      console.error('Failed to fetch classwork:', error)
+    }
+  }
+
+  const createClasswork = async () => {
+    if (!selectedSession || !classworkForm.title) return
+    
+    try {
+      const response = await fetch(`/api/live/${selectedSession.id}/classwork`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(classworkForm)
+      })
+      
+      if (response.ok) {
+        setShowClassworkDialog(false)
+        setClassworkForm({ title: "", description: "", due_at: "" })
+        setSelectedSession(null)
+        fetchClasswork()
+      }
+    } catch (error) {
+      console.error('Failed to create classwork:', error)
+    }
+  }
 
   // Filter assignments
   const filteredAssignments = assignments.filter(assignment => {
@@ -182,19 +273,46 @@ export default function TeacherAssignmentsPage() {
       <AnimationWrapper delay={0.1}>
         <div className="flex justify-center">
           <div className="bg-white/5 rounded-lg p-1">
-            <div className="flex items-center gap-2 px-4 py-2 bg-blue-600/80 text-white rounded-md">
-              <FileText className="h-4 w-4" />
-              <span>Assignments</span>
-              <Badge variant="secondary" className="bg-white/20 text-white">
+            <div className="flex items-center gap-2">
+              <Button
+                variant={activeTab === "assignments" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("assignments")}
+                className={activeTab === "assignments" 
+                  ? "bg-blue-600/80 text-white" 
+                  : "text-slate-300 hover:text-white hover:bg-white/10"
+                }
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Assignments
+                <Badge variant="secondary" className="bg-white/20 text-white ml-2">
                 {assignments.length}
               </Badge>
+              </Button>
+              <Button
+                variant={activeTab === "classwork" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setActiveTab("classwork")}
+                className={activeTab === "classwork" 
+                  ? "bg-blue-600/80 text-white" 
+                  : "text-slate-300 hover:text-white hover:bg-white/10"
+                }
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Classwork
+                <Badge variant="secondary" className="bg-white/20 text-white ml-2">
+                  {classwork.length}
+                </Badge>
+              </Button>
             </div>
           </div>
         </div>
       </AnimationWrapper>
 
-      {/* Assignments Content */}
+      {/* Content */}
       <div className="space-y-6">
+        {activeTab === "assignments" ? (
+          <>
           {/* Search and Filters */}
           <AnimationWrapper delay={0.2}>
             <GlassCard className="p-4">
@@ -224,7 +342,110 @@ export default function TeacherAssignmentsPage() {
               </div>
             </GlassCard>
           </AnimationWrapper>
+          </>
+        ) : (
+          <>
+            {/* Classwork Header */}
+            <AnimationWrapper delay={0.2}>
+              <GlassCard className="p-4">
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        placeholder="Search classwork or live sessions..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 bg-white/5 border-white/10 text-white placeholder-slate-400"
+                      />
+                    </div>
+                  </div>
+                  <Dialog open={showClassworkDialog} onOpenChange={setShowClassworkDialog}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-blue-600/80 hover:bg-blue-600 text-white transition-all duration-200 hover:scale-105">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Classwork
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-white/10 border-white/20 backdrop-blur text-white sm:max-w-[600px]">
+                      <DialogHeader className="pb-4">
+                        <DialogTitle className="text-xl font-semibold text-white">Create Live Classwork</DialogTitle>
+                        <p className="text-slate-400 text-sm">Create classwork for a live session</p>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium text-white mb-2 block">Select Live Session</label>
+                          <select
+                            value={selectedSession?.id || ""}
+                            onChange={(e) => {
+                              const session = liveSessions.find(s => s.id === e.target.value)
+                              setSelectedSession(session)
+                            }}
+                            className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white"
+                          >
+                            <option value="">Choose a live session...</option>
+                            {liveSessions.map((session) => (
+                              <option key={session.id} value={session.id}>
+                                {session.title} - {new Date(session.start_time).toLocaleDateString()}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-white mb-2 block">Classwork Title</label>
+                          <Input
+                            value={classworkForm.title}
+                            onChange={(e) => setClassworkForm({...classworkForm, title: e.target.value})}
+                            placeholder="Enter classwork title..."
+                            className="bg-white/5 border-white/10 text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-white mb-2 block">Description</label>
+                          <textarea
+                            value={classworkForm.description}
+                            onChange={(e) => setClassworkForm({...classworkForm, description: e.target.value})}
+                            placeholder="Enter classwork description..."
+                            className="w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white min-h-[100px]"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-white mb-2 block">Due Date (Optional)</label>
+                          <Input
+                            type="datetime-local"
+                            value={classworkForm.due_at}
+                            onChange={(e) => setClassworkForm({...classworkForm, due_at: e.target.value})}
+                            className="bg-white/5 border-white/10 text-white"
+                          />
+                        </div>
+                        <div className="flex gap-2 pt-4">
+                          <Button
+                            onClick={createClasswork}
+                            className="flex-1 bg-blue-600/80 hover:bg-blue-600 text-white"
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            Create Classwork
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => setShowClassworkDialog(false)}
+                            className="text-slate-300 hover:text-white"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </GlassCard>
+            </AnimationWrapper>
+          </>
+        )}
 
+        {/* Content Grid */}
+        {activeTab === "assignments" ? (
+          <>
           {/* Assignments Grid */}
           {filteredAssignments.length === 0 ? (
             <AnimationWrapper delay={0.3}>
@@ -238,7 +459,7 @@ export default function TeacherAssignmentsPage() {
             </AnimationWrapper>
           ) : (
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredAssignments.map((assignment, index) => {
+                {filteredAssignments.map((assignment, index) => {
                 const hasPendingSubmissions = (assignment.submission_count || 0) > (assignment.graded_count || 0)
                 return (
                 <AnimationWrapper key={assignment.id} delay={index * 0.1}>
@@ -296,15 +517,15 @@ export default function TeacherAssignmentsPage() {
                           </p>
                         </div>
                         <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1 flex-shrink-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
                       </div>
 
                       {/* Assignment Type and Description */}
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2">
                           <div className="p-1.5 bg-white/10 rounded-md">
-                            {getAssignmentIcon(assignment.type)}
+                          {getAssignmentIcon(assignment.type)}
                           </div>
                           <span className="text-xs text-slate-300 capitalize font-medium">
                             {assignment.type.replace('_', ' ')}
@@ -322,10 +543,10 @@ export default function TeacherAssignmentsPage() {
                             <Users className="h-3.5 w-3.5" />
                             <span>{assignment.submission_count || 0} submissions</span>
                           </div>
-                          {assignment.avg_grade && assignment.avg_grade > 0 && (
+                          {(assignment.submission_count || 0) > 0 && (
                             <div className="flex items-center gap-1.5 text-xs text-green-400">
                               <CheckCircle className="h-3.5 w-3.5" />
-                              <span>{assignment.avg_grade.toFixed(1)} avg</span>
+                              <span>Active</span>
                             </div>
                           )}
                         </div>
@@ -357,8 +578,110 @@ export default function TeacherAssignmentsPage() {
                 </AnimationWrapper>
                 )
               })}
-            </div>
-          )}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Classwork Grid */}
+            {classwork.length === 0 ? (
+              <AnimationWrapper delay={0.3}>
+                <GlassCard className="p-8">
+                  <div className="text-center">
+                    <BookOpen className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No classwork found</h3>
+                    <p className="text-slate-400">Create classwork for your live sessions</p>
+                  </div>
+                </GlassCard>
+              </AnimationWrapper>
+            ) : (
+              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {classwork.map((item, index) => (
+                  <AnimationWrapper key={item.id} delay={index * 0.1}>
+                    <GlassCard className="p-4 hover:bg-white/10 transition-all duration-300 hover:scale-105 relative">
+                      {/* Status Dot */}
+                      <div className="absolute -top-2 -right-2 z-10 group">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-all duration-300 group-hover:scale-125 bg-blue-500 group-hover:bg-blue-400">
+                          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        </div>
+                        
+                        {/* Hover Tooltip */}
+                        <div className="absolute top-6 right-0 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pointer-events-none">
+                          <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-lg px-3 py-2 text-xs text-white whitespace-nowrap shadow-xl">
+                            <div className="flex items-center gap-1">
+                              <BookOpen className="h-3 w-3 text-blue-400" />
+                              <span>Live Classwork</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {/* Header with Title and Menu */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h3 className="text-base font-semibold text-white truncate leading-tight">
+                              {item.title}
+                            </h3>
+                            <p className="text-xs text-slate-400 mt-0.5 truncate">
+                              {item.session_title}
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1 flex-shrink-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Classwork Type and Description */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-white/10 rounded-md">
+                              <BookOpen className="h-4 w-4 text-blue-400" />
+                            </div>
+                            <span className="text-xs text-slate-300 capitalize font-medium">
+                              Live Classwork
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                            {item.description}
+                          </p>
+                        </div>
+
+                        {/* Session Info and Due Date */}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <Video className="h-3.5 w-3.5" />
+                            <span>Live Session</span>
+                          </div>
+                          {item.due_at && (
+                            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                              <Clock className="h-3.5 w-3.5" />
+                              <span>Due {new Date(item.due_at).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-1.5 pt-1">
+                          <Button size="sm" className="flex-1 bg-blue-600/80 hover:bg-blue-600 text-white text-xs h-8">
+                            <Eye className="h-3.5 w-3.5 mr-1.5" />
+                            View Details
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/10 h-8 w-8 p-0">
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  </AnimationWrapper>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
     </div>
