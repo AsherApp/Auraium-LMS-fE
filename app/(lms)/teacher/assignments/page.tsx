@@ -32,10 +32,12 @@ import {
 import { useRealtimeAssignments } from "@/services/assignments/realtime-hook"
 import { type Assignment } from "@/services/assignments/api"
 import { AssignmentCreator } from "@/components/teacher/assignment-creator"
+import { useClasswork } from "@/services/classwork/hook"
 
 export default function TeacherAssignmentsPage() {
   // State Management - Using Real API
   const { assignments, loading, error, createAssignment, updateAssignment, deleteAssignment } = useRealtimeAssignments()
+  const { classwork, createClasswork, updateClasswork, deleteClasswork } = useClasswork()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "pending" | "graded" | "overdue">("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -43,7 +45,6 @@ export default function TeacherAssignmentsPage() {
   
   // Classwork state
   const [liveSessions, setLiveSessions] = useState<any[]>([])
-  const [classwork, setClasswork] = useState<any[]>([])
   const [showClassworkDialog, setShowClassworkDialog] = useState(false)
   const [selectedSession, setSelectedSession] = useState<any>(null)
   const [classworkForm, setClassworkForm] = useState({
@@ -52,11 +53,10 @@ export default function TeacherAssignmentsPage() {
     due_at: ""
   })
 
-  // Fetch live sessions and classwork
+  // Fetch live sessions
   useEffect(() => {
     if (activeTab === "classwork") {
       fetchLiveSessions()
-      fetchClasswork()
     }
   }, [activeTab])
 
@@ -76,51 +76,14 @@ export default function TeacherAssignmentsPage() {
     }
   }
 
-  const fetchClasswork = async () => {
-    try {
-      // Get all classwork from all sessions
-      const allClasswork = []
-      for (const session of liveSessions) {
-        const response = await fetch(`/api/live/${session.id}/classwork`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        if (response.ok) {
-          const data = await response.json()
-          const sessionClasswork = (data.items || []).map((item: any) => ({
-            ...item,
-            session_title: session.title,
-            session_id: session.id
-          }))
-          allClasswork.push(...sessionClasswork)
-        }
-      }
-      setClasswork(allClasswork)
-    } catch (error) {
-      console.error('Failed to fetch classwork:', error)
-    }
-  }
-
-  const createClasswork = async () => {
+  const handleCreateClasswork = async () => {
     if (!selectedSession || !classworkForm.title) return
     
     try {
-      const response = await fetch(`/api/live/${selectedSession.id}/classwork`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(classworkForm)
-      })
-      
-      if (response.ok) {
-        setShowClassworkDialog(false)
-        setClassworkForm({ title: "", description: "", due_at: "" })
-        setSelectedSession(null)
-        fetchClasswork()
-      }
+      await createClasswork(selectedSession.id, classworkForm)
+      setShowClassworkDialog(false)
+      setClassworkForm({ title: "", description: "", due_at: "" })
+      setSelectedSession(null)
     } catch (error) {
       console.error('Failed to create classwork:', error)
     }
@@ -420,7 +383,7 @@ export default function TeacherAssignmentsPage() {
                         </div>
                         <div className="flex gap-2 pt-4">
                           <Button
-                            onClick={createClasswork}
+                            onClick={handleCreateClasswork}
                             className="flex-1 bg-blue-600/80 hover:bg-blue-600 text-white"
                           >
                             <Send className="h-4 w-4 mr-2" />
@@ -547,7 +510,7 @@ export default function TeacherAssignmentsPage() {
                             <div className="flex items-center gap-1.5 text-xs text-green-400">
                               <CheckCircle className="h-3.5 w-3.5" />
                               <span>Active</span>
-                            </div>
+                        </div>
                           )}
                         </div>
                         {assignment.due_at && (
@@ -578,8 +541,8 @@ export default function TeacherAssignmentsPage() {
                 </AnimationWrapper>
                 )
               })}
-              </div>
-            )}
+            </div>
+          )}
           </>
         ) : (
           <>
@@ -591,9 +554,9 @@ export default function TeacherAssignmentsPage() {
                     <BookOpen className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No classwork found</h3>
                     <p className="text-slate-400">Create classwork for your live sessions</p>
-                  </div>
-                </GlassCard>
-              </AnimationWrapper>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
             ) : (
               <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {classwork.map((item, index) => (
@@ -611,10 +574,10 @@ export default function TeacherAssignmentsPage() {
                             <div className="flex items-center gap-1">
                               <BookOpen className="h-3 w-3 text-blue-400" />
                               <span>Live Classwork</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+              </div>
+                </div>
+              </div>
+            </div>
                       
                       <div className="space-y-3">
                         {/* Header with Title and Menu */}
@@ -641,11 +604,11 @@ export default function TeacherAssignmentsPage() {
                             <span className="text-xs text-slate-300 capitalize font-medium">
                               Live Classwork
                             </span>
-                          </div>
+            </div>
                           <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
                             {item.description}
                           </p>
-                        </div>
+            </div>
 
                         {/* Session Info and Due Date */}
                         <div className="space-y-2">
@@ -657,9 +620,9 @@ export default function TeacherAssignmentsPage() {
                             <div className="flex items-center gap-1.5 text-xs text-slate-400">
                               <Clock className="h-3.5 w-3.5" />
                               <span>Due {new Date(item.due_at).toLocaleDateString()}</span>
-                            </div>
+              </div>
                           )}
-                        </div>
+                </div>
 
                         {/* Actions */}
                         <div className="flex gap-1.5 pt-1">
@@ -673,10 +636,10 @@ export default function TeacherAssignmentsPage() {
                           <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                        </div>
-                      </div>
-                    </GlassCard>
-                  </AnimationWrapper>
+              </div>
+            </div>
+          </GlassCard>
+        </AnimationWrapper>
                 ))}
               </div>
             )}
