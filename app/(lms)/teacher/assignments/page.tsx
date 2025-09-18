@@ -207,18 +207,6 @@ export default function TeacherAssignmentsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(assignment)}
-                          {assignment.submission_count > 0 && (
-                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              {assignment.submission_count}
-                            </Badge>
-                          )}
-                          {hasPendingSubmissions && (
-                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 flex items-center gap-1 animate-pulse">
-                              <AlertCircle className="h-3 w-3" />
-                              {(assignment.submission_count || 0) - (assignment.graded_count || 0)}
-                            </Badge>
-                          )}
                           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -240,29 +228,18 @@ export default function TeacherAssignmentsPage() {
                         {assignment.description}
                       </p>
 
-                      {/* Stats */}
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div className="space-y-1">
-                          <div className="text-lg font-semibold text-white flex items-center justify-center gap-1">
-                            <Users className="h-4 w-4" />
-                            {assignment.submission_count || 0}
-                          </div>
-                          <div className="text-xs text-slate-400">Submissions</div>
+                      {/* Stats - Simplified */}
+                      <div className="flex items-center justify-between text-sm text-slate-400">
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          <span>{assignment.submission_count || 0} submissions</span>
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-lg font-semibold text-orange-400 flex items-center justify-center gap-1">
-                            <AlertCircle className="h-4 w-4" />
-                            {(assignment.submission_count || 0) - (assignment.graded_count || 0)}
-                          </div>
-                          <div className="text-xs text-slate-400">Pending</div>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="text-lg font-semibold text-green-400 flex items-center justify-center gap-1">
+                        {assignment.avg_grade && assignment.avg_grade > 0 && (
+                          <div className="flex items-center gap-1 text-green-400">
                             <CheckCircle className="h-4 w-4" />
-                            {assignment.avg_grade ? assignment.avg_grade.toFixed(1) : '0.0'}
+                            <span>{assignment.avg_grade.toFixed(1)} avg</span>
                           </div>
-                          <div className="text-xs text-slate-400">Avg Grade</div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Due Date */}
