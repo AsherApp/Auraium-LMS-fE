@@ -190,12 +190,47 @@ export default function TeacherAssignmentsPage() {
                 return (
                 <AnimationWrapper key={assignment.id} delay={index * 0.1}>
                   <GlassCard className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105 relative">
-                    {/* New Submission Notification Dot */}
-                    {hasPendingSubmissions && (
-                      <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center z-10 shadow-lg">
+                    {/* Interactive Status Dot */}
+                    <div className="absolute -top-2 -right-2 z-10 group">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-all duration-300 group-hover:scale-125 ${
+                        assignment.due_at && new Date(assignment.due_at) < new Date() 
+                          ? 'bg-red-500 group-hover:bg-red-400' 
+                          : hasPendingSubmissions 
+                            ? 'bg-orange-500 group-hover:bg-orange-400'
+                            : (assignment.submission_count || 0) > 0
+                              ? 'bg-green-500 group-hover:bg-green-400'
+                              : 'bg-blue-500 group-hover:bg-blue-400'
+                      }`}>
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       </div>
-                    )}
+                      
+                      {/* Hover Tooltip */}
+                      <div className="absolute top-6 right-0 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pointer-events-none">
+                        <div className="bg-slate-800/95 backdrop-blur-sm border border-slate-700 rounded-lg px-3 py-2 text-xs text-white whitespace-nowrap shadow-xl">
+                          {assignment.due_at && new Date(assignment.due_at) < new Date() ? (
+                            <div className="flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3 text-red-400" />
+                              <span>Overdue</span>
+                            </div>
+                          ) : hasPendingSubmissions ? (
+                            <div className="flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3 text-orange-400" />
+                              <span>Needs Grading</span>
+                            </div>
+                          ) : (assignment.submission_count || 0) > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3 text-green-400" />
+                              <span>Complete</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-blue-400" />
+                              <span>Active</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                     <div className="space-y-4">
                       {/* Header */}
                       <div className="flex items-start justify-between">
@@ -206,7 +241,6 @@ export default function TeacherAssignmentsPage() {
                           <p className="text-xs text-slate-400">Course: {assignment.course_title || assignment.course_id}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {getStatusBadge(assignment)}
                           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
