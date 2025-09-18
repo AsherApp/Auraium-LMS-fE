@@ -61,12 +61,24 @@ export function NotificationSystem() {
       // Transform API data to match our interface and filter out inappropriate notifications
       const transformedNotifications = fetchedNotifications
         .filter((notification: any) => {
-          // Filter out old signup notifications that shouldn't be shown repeatedly
+          // Filter out inappropriate notifications
           const isOldSignup = notification.type === 'signup' || notification.type === 'teacher_signup'
+          const isWelcome = notification.title?.includes('Welcome') || notification.title?.includes('Account successfully created')
           const isOld = notification.created_at && new Date(notification.created_at) < new Date(Date.now() - 24 * 60 * 60 * 1000) // Older than 24 hours
           
-          // Don't show old signup notifications
-          if (isOldSignup && isOld) {
+          // Don't show old signup/welcome notifications
+          if ((isOldSignup || isWelcome) && isOld) {
+            return false
+          }
+          
+          // Don't show welcome/signup notifications at all (they're one-time only)
+          if (isWelcome || isOldSignup) {
+            return false
+          }
+          
+          // Only show relevant notification types
+          const relevantTypes = ['assignment', 'live_class', 'announcement', 'discussion', 'message', 'grade', 'deadline', 'module_completed', 'course_completed', 'quiz_available', 'live_session']
+          if (!relevantTypes.includes(notification.type)) {
             return false
           }
           
@@ -103,6 +115,8 @@ export function NotificationSystem() {
           })
         }
       })
+      
+      console.log(`Loaded ${transformedNotifications.length} relevant notifications`)
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
       console.error('Error details:', {
@@ -154,7 +168,7 @@ export function NotificationSystem() {
     }
   }
 
-  // Fetch notifications on mount and set up polling
+  // Fetch notifications on mount only (no continuous polling)
   useEffect(() => {
     if (user?.email && user?.role) {
       // Add a small delay to ensure user is fully authenticated
@@ -162,28 +176,27 @@ export function NotificationSystem() {
         fetchNotifications()
       }, 1000)
       
-      // Poll for new notifications every 60 seconds (reduced frequency)
-      const interval = setInterval(fetchNotifications, 60000)
-      
       return () => {
         clearTimeout(timer)
-        clearInterval(interval)
       }
     }
   }, [user?.email, user?.role]) // Only depend on email, not the entire user object
 
-  // Show toast for new notifications (only for very recent ones)
+  // Show toast for new notifications (only for very recent and relevant ones)
   useEffect(() => {
     const newNotifications = notifications.filter(n => 
       !n.read && 
-      new Date(n.timestamp) > new Date(Date.now() - 10000) // Only show toasts for notifications less than 10 seconds old
+      new Date(n.timestamp) > new Date(Date.now() - 30000) // Only show toasts for notifications less than 30 seconds old
     )
     
     newNotifications.forEach(notification => {
-      // Don't show toast for system notifications or old signup notifications
-      if (notification.type !== 'system' && 
+      // Only show toasts for relevant notification types
+      const relevantTypes = ['assignment', 'live_class', 'announcement', 'discussion', 'message', 'grade', 'deadline', 'module_completed', 'course_completed', 'quiz_available', 'live_session']
+      
+      if (relevantTypes.includes(notification.type) && 
           !notification.title.includes('Account successfully created') &&
-          !notification.title.includes('Welcome')) {
+          !notification.title.includes('Welcome') &&
+          !notification.title.includes('signup')) {
         toast({
           title: notification.title,
           description: notification.message,
@@ -345,6 +358,15 @@ export function NotificationSystem() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={fetchNotifications}
+                      disabled={loading}
+                      className="text-slate-400 hover:text-white text-xs"
+                    >
+                      {loading ? "..." : "Refresh"}
+                    </Button>
                     {unreadCount > 0 && (
                       <Button
                         size="sm"

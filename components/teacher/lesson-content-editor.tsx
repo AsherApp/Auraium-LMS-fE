@@ -29,6 +29,7 @@ import { uploadVideo, uploadFile } from "@/services/upload/api"
 import { useToast } from "@/hooks/use-toast"
 import { useVideoCompression } from "@/hooks/use-video-compression"
 import { needsCompression, formatFileSize } from "@/lib/video-compression"
+import { RichTextEditor } from "@/components/shared/rich-text-editor"
 
 type Props = {
   lesson: Lesson
@@ -290,6 +291,18 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        ) : null
+      case "text":
+        return content?.text?.content ? (
+          <div className="space-y-4">
+            <div className="bg-white/5 p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText className="h-5 w-5 text-blue-400" />
+                <h3 className="font-medium text-white">Text Content</h3>
+              </div>
+              <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: content.text.content }} />
             </div>
           </div>
         ) : null
@@ -671,6 +684,37 @@ export function LessonContentEditor({ lesson, onCancel = () => {}, onSave = () =
                   <OptionList 
                     values={content.poll?.options || []} 
                     onChange={(vals) => setField(["poll", "options"], vals)} 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {type === "text" && (
+            <Card className="bg-white/5 border-white/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <FileText className="h-5 w-5" />
+                  Text Content
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Title (optional)</Label>
+                  <Input
+                    className="bg-white/5 border-white/10 text-white"
+                    value={content.text?.title || ""}
+                    onChange={(e) => setField(["text", "title"], e.target.value)}
+                    placeholder="Optional title for this text content"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Content</Label>
+                  <RichTextEditor
+                    value={content.text?.content || ""}
+                    onChange={(value) => setField(["text", "content"], value)}
+                    placeholder="Enter your text content here..."
+                    className="min-h-[300px]"
                   />
                 </div>
               </CardContent>

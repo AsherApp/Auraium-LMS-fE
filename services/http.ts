@@ -63,8 +63,28 @@ export async function http<T>(path: string, opts: HttpOptions = {}): Promise<T> 
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth-token')
         localStorage.removeItem('auth-store')
+        localStorage.removeItem('user-email')
+        localStorage.removeItem('user-role')
+        
+        // Show user-friendly session expired message
+        if (window.location.pathname !== '/login') {
+          // Create a custom event for session expiration
+          const sessionExpiredEvent = new CustomEvent('session-expired', {
+            detail: {
+              title: "Session Expired",
+              description: "Your session has expired. Please log in again to continue.",
+              variant: "destructive"
+            }
+          })
+          window.dispatchEvent(sessionExpiredEvent)
+          
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 2000)
+        }
       }
-      throw new Error('Authentication failed. Please log in again.')
+      throw new Error('Session expired. Please log in again.')
     }
     
     // Try to parse JSON error response

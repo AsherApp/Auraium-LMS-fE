@@ -24,13 +24,13 @@ import {
   CheckCircle,
   AlertTriangle
 } from "lucide-react"
-import { useAssignments } from "@/services/assignments/hook"
+import { useRealtimeAssignments } from "@/services/assignments/realtime-hook"
 import { type Assignment } from "@/services/assignments/api"
 import { AssignmentCreator } from "@/components/teacher/assignment-creator"
 
 export default function TeacherAssignmentsPage() {
   // State Management - Using Real API
-  const { assignments, loading, error, createAssignment, updateAssignment, deleteAssignment } = useAssignments()
+  const { assignments, loading, error, createAssignment, updateAssignment, deleteAssignment } = useRealtimeAssignments()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState<"all" | "pending" | "graded" | "overdue">("all")
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -185,9 +185,17 @@ export default function TeacherAssignmentsPage() {
             </AnimationWrapper>
           ) : (
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredAssignments.map((assignment, index) => (
+              {filteredAssignments.map((assignment, index) => {
+                const hasPendingSubmissions = (assignment.submission_count || 0) > (assignment.graded_count || 0)
+                return (
                 <AnimationWrapper key={assignment.id} delay={index * 0.1}>
-                  <GlassCard className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105">
+                  <GlassCard className="p-5 hover:bg-white/10 transition-all duration-300 hover:scale-105 relative">
+                    {/* New Submission Notification Dot */}
+                    {hasPendingSubmissions && (
+                      <div className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center z-10 shadow-lg">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                      </div>
+                    )}
                     <div className="space-y-4">
                       {/* Header */}
                       <div className="flex items-start justify-between">
@@ -203,6 +211,12 @@ export default function TeacherAssignmentsPage() {
                             <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 flex items-center gap-1">
                               <Users className="h-3 w-3" />
                               {assignment.submission_count}
+                            </Badge>
+                          )}
+                          {hasPendingSubmissions && (
+                            <Badge className="bg-red-500/20 text-red-400 border-red-500/30 flex items-center gap-1 animate-pulse">
+                              <AlertCircle className="h-3 w-3" />
+                              {(assignment.submission_count || 0) - (assignment.graded_count || 0)}
                             </Badge>
                           )}
                           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white p-1">
@@ -277,7 +291,8 @@ export default function TeacherAssignmentsPage() {
                     </div>
                   </GlassCard>
                 </AnimationWrapper>
-              ))}
+                )
+              })}
             </div>
           )}
       </div>

@@ -7,6 +7,7 @@ export type Module = {
   description: string
   position: number
   created_at?: string
+  lessons?: any[]
 }
 
 export type CreateModuleData = {

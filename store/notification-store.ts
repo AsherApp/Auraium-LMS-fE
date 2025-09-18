@@ -55,6 +55,17 @@ export const useNotificationStore = create<NotificationState>()(
         }
 
         set((state) => {
+          // Check for duplicates based on title and message
+          const isDuplicate = state.notifications.some(n => 
+            n.title === newNotification.title && 
+            n.message === newNotification.message &&
+            new Date(n.timestamp).getTime() > Date.now() - 60000 // Within last minute
+          )
+          
+          if (isDuplicate) {
+            return state // Don't add duplicate
+          }
+          
           const updatedNotifications = [newNotification, ...state.notifications].slice(0, 100) // Keep only last 100
           return {
             notifications: updatedNotifications,
@@ -89,6 +100,16 @@ export const useNotificationStore = create<NotificationState>()(
         }
 
         set((state) => {
+          // Check for duplicates based on title and message
+          const isDuplicate = state.notifications.some(n => 
+            n.title === newNotification.title && 
+            n.message === newNotification.message
+          )
+          
+          if (isDuplicate) {
+            return state // Don't add duplicate
+          }
+          
           const updatedNotifications = [newNotification, ...state.notifications].slice(0, 100) // Keep only last 100
           return {
             notifications: updatedNotifications,

@@ -6,7 +6,7 @@ import { http } from '../http'
 
 export type AssignmentType = 'essay' | 'quiz' | 'project' | 'file_upload' | 'code_submission' | 'discussion' | 'peer_review' | 'presentation'
 
-export type SubmissionStatus = 'not_started' | 'submitted' | 'graded' | 'awaiting_response'
+export type SubmissionStatus = 'not_started' | 'draft' | 'submitted' | 'graded' | 'returned' | 'awaiting_response'
 
 export type Assignment = {
   id: string
@@ -22,6 +22,15 @@ export type Assignment = {
   available_until?: string
   is_published: boolean
   settings?: any
+  instructions?: string
+  max_attempts?: number
+  time_limit_minutes?: number
+  allow_late_submissions?: boolean
+  late_penalty_percent?: number
+  scope?: {
+    moduleId?: string
+    lessonId?: string
+  }
   created_at: string
   updated_at: string
   // Computed fields
@@ -59,7 +68,7 @@ export type Submission = {
   // Legacy fields
   content?: any // Keep for backward compatibility during migration
   response?: string
-  status: 'submitted' | 'graded' | 'returned'
+  status: SubmissionStatus
   attempt_number: number
   grade?: number | null
   feedback?: string
@@ -86,6 +95,19 @@ export type CreateAssignmentData = {
   available_from?: string
   available_until?: string
   settings?: any
+  instructions?: string
+  max_attempts?: number
+  time_limit_minutes?: number
+  allow_late_submissions?: boolean
+  late_penalty_percent?: number
+  require_rubric?: boolean
+  rubric?: any
+  form?: any
+  resources?: any
+  scope?: {
+    moduleId?: string
+    lessonId?: string
+  }
 }
 
 export type UpdateAssignmentData = {
@@ -102,6 +124,14 @@ export type CreateSubmissionData = {
   assignment_id: string
   content?: any
   response?: string
+  essay_content?: string
+  project_description?: string
+  discussion_response?: string
+  presentation_notes?: string
+  code_submission?: string
+  peer_review_content?: string
+  quiz_answers?: any
+  uploaded_files?: any[]
 }
 
 export type UpdateSubmissionData = {

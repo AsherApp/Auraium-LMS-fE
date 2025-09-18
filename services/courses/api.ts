@@ -10,6 +10,9 @@ export type Course = {
   visibility: 'private' | 'unlisted' | 'public'
   enrollment_policy: 'invite_only' | 'request' | 'open'
   enrollment_count?: number
+  thumbnail_url?: string
+  course_mode?: string
+  certificate_config?: any
   created_at: string
   updated_at: string
   published_at?: string | null
@@ -23,6 +26,7 @@ export type Module = {
   order: number
   created_at: string
   updated_at: string
+  lessons?: Lesson[]
 }
 
 export type Lesson = {

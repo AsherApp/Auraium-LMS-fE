@@ -12,7 +12,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuthStore } from "@/store/auth-store"
-import { useMyAssignments } from "@/services/assignments/hook"
+import { useRealtimeStudentAssignments } from "@/services/assignments/realtime-hook"
 import { type Assignment } from "@/services/assignments/api"
 import { 
   ClipboardList, 
@@ -34,7 +34,7 @@ type AssignmentWithSubmission = Assignment & {
 
 export default function StudentAssignmentsPage() {
   const { user } = useAuthStore()
-  const { assignments: allAssignments, loading, error, refetch: refreshAssignments } = useMyAssignments()
+  const { assignments: allAssignments, loading, error, refetch: refreshAssignments } = useRealtimeStudentAssignments()
   const [courses, setCourses] = useState<any[]>([])
   const [assignments, setAssignments] = useState<AssignmentWithSubmission[]>([])
   const [progressData, setProgressData] = useState<any>(null)

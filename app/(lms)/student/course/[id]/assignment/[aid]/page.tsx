@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { useAuthStore } from "@/store/auth-store"
 import { useAssignment, useMySubmission, useSubmissionManagement } from "@/services/assignments/hook"
+import { useRealtimeSubmissions } from "@/services/assignments/realtime-hook"
 import { type Assignment, type Submission } from "@/services/assignments/api"
 import { useToast } from "@/hooks/use-toast"
 import { RichTextEditor } from "@/components/shared/rich-text-editor"
@@ -543,7 +544,7 @@ export default function StudentAssignmentWorkspacePage() {
                   multiple
                   onChange={(e) => handleFileUpload(e.target.files)}
                   className="hidden"
-                  accept={assignment?.settings?.allowed_file_types?.map(type => `.${type}`).join(',') || '.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar'}
+                  accept={assignment?.settings?.allowed_file_types?.map((type: string) => `.${type}`).join(',') || '.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar'}
                 />
                 <Button 
                   variant="outline" 
@@ -563,8 +564,8 @@ export default function StudentAssignmentWorkspacePage() {
                 <h4 className="text-white font-medium">Uploaded Files ({content.file_upload.length})</h4>
                 {content.file_upload.map((file, index) => {
                   const Icon = getFileIcon(file)
-                  const fileName = file.name || file.filename || 'Unknown file'
-                  const fileSize = file.size || file.file_size || 0
+                  const fileName = file.name || 'Unknown file'
+                  const fileSize = file.size || 0
                   return (
                     <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
                       <div className="flex items-center gap-3">
@@ -1017,7 +1018,7 @@ export default function StudentAssignmentWorkspacePage() {
 
   const AssignmentIcon = getAssignmentIcon(assignment.type)
 
-  if (loading) {
+  if (loading || submissionLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -1261,7 +1262,7 @@ export default function StudentAssignmentWorkspacePage() {
                   <p className="text-slate-300 text-sm mb-3">
                     Your teacher has requested changes to your assignment.
                   </p>
-                  {submission.feedback && (
+                  {submission?.feedback && (
                     <div className="mt-3 text-slate-300 text-sm text-left">
                       <p className="font-medium text-orange-400 mb-2">Teacher Feedback:</p>
                       <div className="bg-slate-800/50 p-3 rounded-lg border border-orange-500/20">
@@ -1297,7 +1298,7 @@ export default function StudentAssignmentWorkspacePage() {
                   {assignment.allow_late_submissions ? 'Allowed' : 'Not Allowed'}
                 </span>
               </div>
-              {assignment.late_penalty_percent > 0 && (
+              {assignment.late_penalty_percent && assignment.late_penalty_percent > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Late Penalty</span>
                   <span className="text-red-400">{assignment.late_penalty_percent}%</span>

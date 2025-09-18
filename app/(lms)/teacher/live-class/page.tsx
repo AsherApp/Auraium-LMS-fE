@@ -38,6 +38,7 @@ export default function TeacherLiveClass() {
   
   // Form state for creating new session
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [creatingSession, setCreatingSession] = useState(false)
   const [newSession, setNewSession] = useState({
     session_type: "general" as "course" | "module" | "general",
     course_id: "",
@@ -48,7 +49,7 @@ export default function TeacherLiveClass() {
   })
 
   const handleCreateSession = async () => {
-    if (loading) {
+    if (creatingSession) {
       console.log('Session creation already in progress, ignoring duplicate call')
       return
     }
@@ -68,6 +69,7 @@ export default function TeacherLiveClass() {
       return
     }
     
+    setCreatingSession(true)
     try {
       console.log('Creating live session:', newSession.title)
       await createSession({
@@ -97,6 +99,8 @@ export default function TeacherLiveClass() {
         description: err.message, 
         variant: "destructive" 
       })
+    } finally {
+      setCreatingSession(false)
     }
   }
 
@@ -598,10 +602,10 @@ export default function TeacherLiveClass() {
             <div className="flex gap-3">
               <Button 
                 onClick={handleCreateSession}
-                disabled={loading || !newSession.title || !newSession.start_at}
+                disabled={creatingSession || !newSession.title || !newSession.start_at}
                 variant="default"
               >
-                {loading ? (
+                {creatingSession ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Creating...

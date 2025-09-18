@@ -12,6 +12,7 @@ export default function StudentCoursesPage() {
   const [courseStats, setCourseStats] = useState<Record<string, { modules: number; students: number }>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
   
   useEffect(() => {
     const email = (user?.email || '').toLowerCase()
@@ -47,6 +48,7 @@ export default function StudentCoursesPage() {
         
         const coursesWithDetails = await Promise.all(courseDetailsPromises)
         setCourses(coursesWithDetails)
+        setLastFetchTime(Date.now())
         
         // Fetch stats for each course
         const statsPromises = coursesWithDetails.map(async (course: any) => {
@@ -88,6 +90,53 @@ export default function StudentCoursesPage() {
     }
     
     fetchCourses()
+  }, [user?.email])
+
+  // Auto-refresh every 30 seconds to get latest course updates
+  useEffect(() => {
+    if (!user?.email) return
+    
+    const interval = setInterval(() => {
+      const email = (user?.email || '').toLowerCase()
+      if (!email) return
+      
+      setLoading(true)
+      setError(null)
+      
+      const fetchCourses = async () => {
+        try {
+          console.log('Student Courses - Auto-refresh fetching courses for:', email)
+          const response = await http<any>(`/api/students/me/courses`)
+          const enrolledCourses = response.items || []
+          
+          // Fetch complete course details for each enrolled course
+          const courseDetailsPromises = enrolledCourses.map(async (enrollment: any) => {
+            try {
+              const courseResponse = await http<any>(`/api/courses/${enrollment.course_id}`)
+              return {
+                ...enrollment,
+                course_details: courseResponse
+              }
+            } catch (err) {
+              console.error(`Failed to fetch course details for ${enrollment.course_id}:`, err)
+              return enrollment
+            }
+          })
+          
+          const coursesWithDetails = await Promise.all(courseDetailsPromises)
+          setCourses(coursesWithDetails)
+          setLastFetchTime(Date.now())
+        } catch (err: any) {
+          console.error('Auto-refresh failed:', err)
+        } finally {
+          setLoading(false)
+        }
+      }
+      
+      fetchCourses()
+    }, 30000) // Refresh every 30 seconds
+    
+    return () => clearInterval(interval)
   }, [user?.email])
 
   if (loading) {

@@ -6,10 +6,14 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { Navbar } from "@/components/shared/navbar"
 import { Toaster } from "@/components/ui/toaster"
 import { NotificationSystem } from "@/components/shared/notification-system"
+import { useTokenExpiration } from "@/hooks/use-token-expiration"
 
 export function LmsLayoutClient({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isLandingPage = pathname === "/"
+  
+  // Monitor token expiration and show warnings
+  useTokenExpiration()
 
   if (isLandingPage) {
     return (

@@ -14,7 +14,7 @@ export default function StudentAssignmentDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuthStore()
-  const assignmentId = params.id as string
+  const assignmentId = params?.id as string
   
   const { assignment, loading, error } = useAssignment(assignmentId)
   const { submission } = useMySubmission(assignmentId)
@@ -278,7 +278,7 @@ export default function StudentAssignmentDetailPage() {
                   <span className="text-white">{new Date(assignment.due_at).toLocaleDateString()}</span>
                 </div>
               )}
-              {assignment.max_attempts > 1 && (
+              {assignment.max_attempts && assignment.max_attempts > 1 && (
                 <div className="flex justify-between">
                   <span className="text-slate-400">Max Attempts:</span>
                   <span className="text-white">{assignment.max_attempts}</span>

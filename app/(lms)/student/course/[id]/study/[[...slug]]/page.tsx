@@ -2,7 +2,7 @@
 
 import { notFound, useParams, useRouter } from "next/navigation"
 import { useMemo, useState, useEffect } from "react"
-import { CleanStudyArea } from "@/components/student/clean-study-area"
+import { EnhancedStudyArea } from "@/components/student/enhanced-study-area"
 import { useAuthStore } from "@/store/auth-store"
 import { http } from "@/services/http"
 import { GlassCard } from "@/components/shared/glass-card"
@@ -72,7 +72,7 @@ export default function StudyAreaPage() {
 
   return (
     <div className="space-y-6">
-      <CleanStudyArea
+      <EnhancedStudyArea
         courseId={course.id}
         title="Study Area"
       />

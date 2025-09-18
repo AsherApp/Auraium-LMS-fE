@@ -38,36 +38,84 @@ export function useAssignments() {
   }, [fetchAssignments])
 
   const createAssignment = useCallback(async (data: CreateAssignmentData) => {
+    // Optimistic update - add assignment immediately
+    const tempId = `temp_${Date.now()}`
+    const optimisticAssignment: Assignment = {
+      id: tempId,
+      title: data.title,
+      description: data.description || '',
+      type: data.type,
+      due_at: data.due_at,
+      points: data.points || 0,
+      course_id: data.course_id,
+      module_id: data.module_id,
+      lesson_id: data.lesson_id,
+      settings: data.settings || {},
+      is_published: data.is_published || false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      course: data.course || null,
+      student_submission: null,
+      is_available: true,
+      is_overdue: false,
+      submission_count: 0,
+      graded_count: 0
+    }
+    
+    setAssignments(prev => [optimisticAssignment, ...prev])
+    
     try {
       const newAssignment = await AssignmentAPI.createAssignment(data)
-      setAssignments(prev => [newAssignment, ...prev])
+      // Replace optimistic assignment with real one
+      setAssignments(prev => prev.map(a => a.id === tempId ? newAssignment : a))
       return newAssignment
     } catch (err: any) {
+      // Revert optimistic update on error
+      setAssignments(prev => prev.filter(a => a.id !== tempId))
       setError(err.message || 'Failed to create assignment')
       throw err
     }
   }, [])
 
   const updateAssignment = useCallback(async (id: string, data: UpdateAssignmentData) => {
+    // Store original assignment for rollback
+    const originalAssignment = assignments.find(a => a.id === id)
+    if (!originalAssignment) throw new Error('Assignment not found')
+    
+    // Optimistic update
+    const optimisticAssignment = { ...originalAssignment, ...data, updated_at: new Date().toISOString() }
+    setAssignments(prev => prev.map(a => a.id === id ? optimisticAssignment : a))
+    
     try {
       const updatedAssignment = await AssignmentAPI.updateAssignment(id, data)
       setAssignments(prev => prev.map(a => a.id === id ? updatedAssignment : a))
       return updatedAssignment
     } catch (err: any) {
+      // Revert optimistic update on error
+      setAssignments(prev => prev.map(a => a.id === id ? originalAssignment : a))
       setError(err.message || 'Failed to update assignment')
       throw err
     }
-  }, [])
+  }, [assignments])
 
   const deleteAssignment = useCallback(async (id: string) => {
+    // Store original assignment for rollback
+    const originalAssignment = assignments.find(a => a.id === id)
+    if (!originalAssignment) throw new Error('Assignment not found')
+    
+    // Optimistic update - remove immediately
+    setAssignments(prev => prev.filter(a => a.id !== id))
+    
     try {
       await AssignmentAPI.deleteAssignment(id)
-      setAssignments(prev => prev.filter(a => a.id !== id))
+      return true
     } catch (err: any) {
+      // Revert optimistic update on error
+      setAssignments(prev => [originalAssignment, ...prev])
       setError(err.message || 'Failed to delete assignment')
       throw err
     }
-  }, [])
+  }, [assignments])
 
   return {
     assignments,

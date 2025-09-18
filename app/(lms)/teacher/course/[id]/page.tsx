@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useMemo, useState, useEffect, useCallback } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { GlassCard } from "@/components/shared/glass-card"
 import { useCourseDetailFn } from "@/services/courses/hook"
 import { useModulesByCourse } from "@/services/modules/hook"
@@ -42,10 +42,12 @@ import {
   FolderOpen,
   Code,
   Award,
+  ArrowLeft,
 } from "lucide-react"
 import { useInvitesFn } from "@/services/invites/hook"
 import { LessonContentEditor } from "@/components/teacher/lesson-content-editor"
 import { ContentPreviewModal } from "@/components/teacher/content-preview-modal"
+import { RichTextEditor } from "@/components/shared/rich-text-editor"
 import { 
   VideoButton, 
   UsersButton, 
@@ -66,6 +68,7 @@ import { getViewerType, canPreviewFile, contentToFileInfo, getPreviewButtonText,
 
 export default function TeacherCourseDetailPage() {
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const { toast } = useToast()
   const { user } = useAuthStore()
   
@@ -79,14 +82,14 @@ export default function TeacherCourseDetailPage() {
   const { activeTab, setActiveTab, handleTabChange } = useFluidTabs('curriculum')
 
   // Use the new course detail hook
-  const { course, loading: courseLoading, error: courseError, updateCourse } = useCourseDetailFn(params.id)
+  const { course, loading: courseLoading, error: courseError, updateCourse } = useCourseDetailFn(params?.id || '')
 
   // Use the new modules hook
-  const { modules, loading: modulesLoading, create: createModule, update: updateModule, remove: deleteModule } = useModulesByCourse(params.id)
+  const { modules, loading: modulesLoading, create: createModule, update: updateModule, remove: deleteModule } = useModulesByCourse(params?.id || '')
 
   // Use the lessons hook for each module
   const [selectedModuleForLessons, setSelectedModuleForLessons] = useState<string>("")
-  const { create: createLesson } = useLessonsByModule(selectedModuleForLessons)
+  const { create: createLesson, remove: deleteLesson } = useLessonsByModule(selectedModuleForLessons)
 
   const rosterSvc = useEnrollmentsFn(course?.id)
   const [assignments, setAssignments] = useState<any[]>([])
@@ -120,6 +123,7 @@ export default function TeacherCourseDetailPage() {
   // Live sessions
   const { sessions: liveSessions, createSession } = useLiveSessionsFn(user?.email || undefined, user?.role)
   const [liveSessionOpen, setLiveSessionOpen] = useState(false)
+  const [creatingLiveSession, setCreatingLiveSession] = useState(false)
   const [newLiveSession, setNewLiveSession] = useState({
     title: "",
     description: "",
@@ -189,7 +193,7 @@ export default function TeacherCourseDetailPage() {
       if (!course?.id) return
       
       try {
-        const courseAssignments = await AssignmentProAPI.listCourseAssignments(course.id)
+        const courseAssignments = await AssignmentAPI.getCourseAssignments(course.id)
         setAssignments(courseAssignments)
       } catch (error) {
         console.error('Failed to fetch assignments:', error)
@@ -300,7 +304,9 @@ export default function TeacherCourseDetailPage() {
         title: lessonTitle.trim(),
         type: lessonType,
         description: lessonDescription.trim(),
-        content: {}
+        content: {},
+        duration: 0, // Will be updated when content is added
+        points: 0 // Will be updated when content is added
       })
       resetLessonModal()
       setLessonOpen(false)
@@ -416,7 +422,7 @@ export default function TeacherCourseDetailPage() {
     setEditStatus(course.status || "draft")
     setEditVisibility(course.visibility || "private")
     setEditPolicy(course.enrollment_policy || "invite_only")
-    setEditCourseMode(course.course_mode || "full")
+    setEditCourseMode((course.course_mode as "full" | "public") || "full")
     setSettingsOpen(true)
   }
 
@@ -440,22 +446,28 @@ export default function TeacherCourseDetailPage() {
   }
 
   function scopeLabel(scope: any) {
-    if (scope.level === "course") return "Course"
-    if (scope.level === "module") {
+    if (!scope.moduleId && !scope.lessonId) return "Course"
+    if (scope.moduleId && !scope.lessonId) {
       const m = modules.find((mm) => mm.id === scope.moduleId)
       return `Module: ${m?.title || "Unknown"}`
     }
-    const m = modules.find((mm) => mm.id === scope.moduleId)
-    // TODO: Add lessons when lessons API is ready
-    return `Lesson: ${m?.title || "Unknown"} › Unknown`
+    if (scope.moduleId && scope.lessonId) {
+      const m = modules.find((mm) => mm.id === scope.moduleId)
+      // Note: lessons are not available in the modules hook, so we'll show module title only
+      return `Lesson: ${m?.title || "Unknown"} › Lesson ${scope.lessonId}`
+    }
+    return "Unknown"
   }
 
   async function handleCreateLiveSession() {
+    if (creatingLiveSession) return // Prevent multiple submissions
+    
     if (!course?.id || !newLiveSession.title || !newLiveSession.start_at) {
       toast({ title: "Please fill in all required fields", variant: "destructive" })
       return
     }
 
+    setCreatingLiveSession(true)
     try {
       console.log('Creating live session from course page:', newLiveSession.title)
       await createSession({
@@ -483,6 +495,8 @@ export default function TeacherCourseDetailPage() {
         description: err.message, 
         variant: "destructive" 
       })
+    } finally {
+      setCreatingLiveSession(false)
     }
   }
 
@@ -493,6 +507,14 @@ export default function TeacherCourseDetailPage() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="text-slate-400 hover:text-white hover:bg-white/10 p-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
               <h1 className="text-white text-2xl font-semibold">{course.title}</h1>
               {/* Course Status Badge */}
               <Badge 
@@ -669,17 +691,18 @@ export default function TeacherCourseDetailPage() {
                             </DialogHeader>
                             <AssignmentCreator
                               courseId={course.id}
-                              scope={{ level: "module", moduleId: m.id }}
+                              scope={{ moduleId: m.id }}
                               scopeLabel={`Module: ${m.title}`}
                               onCancel={() => setAssignmentOpen(false)}
                               onSave={(data) => {
                                 if (!course.id) return
-                                AssignmentProAPI.createAssignment({
+                                AssignmentAPI.createAssignment({
                                   course_id: course.id,
-                                  scope: { level: "module", moduleId: m.id },
+                                  scope: { moduleId: m.id },
                                   title: data.title,
                                   description: data.description,
                                   type: data.type,
+                                  points: data.points || 100,
                                   due_at: data.due_at,
                                   available_from: data.available_from,
                                   available_until: data.available_until,
@@ -760,18 +783,19 @@ export default function TeacherCourseDetailPage() {
                                   </DialogHeader>
                                   <AssignmentCreator
                                     courseId={course.id}
-                                    scope={{ level: "lesson", moduleId: m.id, lessonId: l.id }}
+                                    scope={{ moduleId: m.id, lessonId: l.id }}
                                     scopeLabel={`Lesson: ${m.title} › ${l.title}`}
                                     onCancel={() => setAssignmentOpen(false)}
                                     onSave={(data) => {
                                       if (!course.id) return
-                                      AssignmentProAPI.createAssignment({
+                                      AssignmentAPI.createAssignment({
                                         course_id: course.id,
-                                        scope: { level: "lesson", moduleId: m.id, lessonId: l.id },
+                                        scope: { moduleId: m.id, lessonId: l.id },
                                         title: data.title,
                                         description: data.description || "",
                                         type: data.type as any,
-                                        due_at: data.dueAt ? new Date(data.dueAt).toISOString() : null,
+                                        points: data.points || 100,
+                                        due_at: data.dueAt ? new Date(data.dueAt).toISOString() : undefined,
                                         form: data.form as any,
                                         resources: data.resources as any,
                                       })
@@ -844,9 +868,13 @@ export default function TeacherCourseDetailPage() {
                                 size="sm"
                                 variant="secondary"
                                 className="bg-white/10 text-white hover:bg-white/20"
-                                onClick={() => {
-                                  // TODO: Implement lesson deletion
-                                  toast({ title: "Lesson deletion not yet implemented" })
+                                onClick={async () => {
+                                  try {
+                                    await deleteLesson(l.id)
+                                    toast({ title: "Lesson deleted successfully" })
+                                  } catch (error) {
+                                    toast({ title: "Failed to delete lesson", variant: "destructive" })
+                                  }
                                 }}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -966,9 +994,14 @@ export default function TeacherCourseDetailPage() {
                           size="sm"
                           variant="secondary"
                           className="bg-white/10 text-white hover:bg-white/20"
-                          onClick={() => {
-                            // TODO: Implement assignment deletion
-                            toast({ title: "Assignment deletion not yet implemented" })
+                          onClick={async () => {
+                            try {
+                              await AssignmentAPI.deleteAssignment(a.id)
+                              setAssignments(prev => prev.filter(item => item.id !== a.id))
+                              toast({ title: "Assignment deleted successfully" })
+                            } catch (error) {
+                              toast({ title: "Failed to delete assignment", variant: "destructive" })
+                            }
                           }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -998,7 +1031,7 @@ export default function TeacherCourseDetailPage() {
                     </p>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <Link href={`/teacher/course/${params.id}/certificates`}>
+                      <Link href={`/teacher/course/${params?.id}/certificates`}>
                         <Button 
                           className="w-full bg-yellow-600/80 hover:bg-yellow-600 text-white h-20 flex flex-col items-center justify-center gap-2"
                         >
@@ -1007,7 +1040,7 @@ export default function TeacherCourseDetailPage() {
                         </Button>
                       </Link>
                       
-                      <Link href={`/teacher/course/${params.id}/certificates/preview`}>
+                      <Link href={`/teacher/course/${params?.id}/certificates/preview`}>
                         <Button 
                           variant="outline"
                           className="w-full bg-white/10 text-white hover:bg-white/20 border-white/20 h-20 flex flex-col items-center justify-center gap-2"
@@ -1017,7 +1050,7 @@ export default function TeacherCourseDetailPage() {
                         </Button>
                       </Link>
                       
-                      <Link href={`/teacher/course/${params.id}/certificates/issued`}>
+                      <Link href={`/teacher/course/${params?.id}/certificates/issued`}>
                         <Button 
                           variant="outline"
                           className="w-full bg-white/10 text-white hover:bg-white/20 border-white/20 h-20 flex flex-col items-center justify-center gap-2"
@@ -1153,11 +1186,11 @@ export default function TeacherCourseDetailPage() {
               </div>
               <div className="space-y-3">
                 <Label className="text-white font-medium">Description</Label>
-                <Textarea
+                <RichTextEditor
                   value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  className="bg-white/5 border-white/20 text-white placeholder:text-slate-400 min-h-[80px] focus:border-blue-500/50 focus:ring-blue-500/20 focus:ring-1 transition-all duration-200 resize-none w-full"
+                  onChange={setEditDesc}
                   placeholder="Describe your course content and objectives"
+                  className="min-h-[120px]"
                 />
               </div>
               <div className="space-y-3">
@@ -1288,14 +1321,14 @@ export default function TeacherCourseDetailPage() {
           </DialogHeader>
           <AssignmentCreator
             courseId={course.id}
-            scope={{ level: "course" }}
+            scope={{}}
             scopeLabel={`Course: ${course.title}`}
             onCancel={() => setAssignmentOpen(false)}
             onSave={(data) => {
               if (!course.id) return
-              AssignmentProAPI.createAssignment({
+              AssignmentAPI.createAssignment({
                 course_id: course.id,
-                scope: { level: "course" },
+                scope: {},
                 title: data.title,
                 description: data.description || "",
                 instructions: data.instructions || "",
@@ -1515,10 +1548,10 @@ export default function TeacherCourseDetailPage() {
             <div className="flex gap-2">
               <Button 
                 onClick={handleCreateLiveSession}
-                disabled={!newLiveSession.title || !newLiveSession.start_at}
+                disabled={!newLiveSession.title || !newLiveSession.start_at || creatingLiveSession}
                 className="bg-green-600/80 hover:bg-green-600 text-white flex-1"
               >
-                Create Session
+                {creatingLiveSession ? "Creating..." : "Create Session"}
               </Button>
               <Button 
                 variant="outline" 
@@ -1744,7 +1777,7 @@ function LessonIcon({ type }: { type: "video" | "quiz" | "file" | "discussion" |
   )
 }
 
-function AssignmentIcon({ type }: { type: import("@/services/assignment-pro/api").AssignmentType }) {
+function AssignmentIcon({ type }: { type: import("@/services/assignments/api").AssignmentType }) {
   const Icon =
     type === "essay"
       ? FileText

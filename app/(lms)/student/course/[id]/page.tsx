@@ -10,7 +10,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FluidTabs, useFluidTabs } from "@/components/ui/fluid-tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, PlayCircle, CheckCircle2, ClipboardList, FileText, MessageSquare, AlarmClock, Award, Eye } from "lucide-react"
+import { BookOpen, PlayCircle, CheckCircle2, ClipboardList, FileText, MessageSquare, AlarmClock, Award, Eye, RefreshCw } from "lucide-react"
 import { useAuthStore } from "@/store/auth-store"
 import { useCourseAssignments } from "@/services/assignments/hook"
 import { DocumentViewer } from "@/components/shared/document-viewer"
@@ -29,50 +29,65 @@ export default function StudentCourseDetailPage() {
   const [activeTab, setActiveTab] = useState("curriculum")
   const [isPublicMode, setIsPublicMode] = useState(false)
   const [modulesWithLessons, setModulesWithLessons] = useState<any[]>([])
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0)
   
+  // Refresh function to refetch course data
+  const refreshCourseData = async () => {
+    if (!params.id || !user?.email) return
+    
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // Fetch real course details
+      const courseResponse = await http<any>(`/api/courses/${params.id}`)
+      setCourse(courseResponse)
+      
+      // Check if course is in public mode
+      const isPublic = courseResponse.course_mode === 'public'
+      setIsPublicMode(isPublic)
+      
+      // Update user object with course_mode for sidebar detection
+      if (isPublic && user) {
+        const updatedUser = { ...user, course_mode: 'public' as const }
+        const { setUser } = useAuthStore.getState()
+        setUser(updatedUser)
+      }
+      
+      // Fetch real modules data
+      try {
+        const modulesResponse = await http<any>(`/api/modules/course/${params.id}`)
+        setModules(modulesResponse.items || [])
+      } catch (modulesError) {
+        console.warn('Failed to fetch modules:', modulesError)
+        setModules([]) // Set empty array if modules fetch fails
+      }
+      
+      setLastFetchTime(Date.now())
+    } catch (err: any) {
+      setError(err.message || "Failed to load course")
+      console.error('Course fetch error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Set up course data
   useEffect(() => {
     if (params.id && user?.email) {
-      const fetchCourseData = async () => {
-        setLoading(true)
-        setError(null)
-        
-        try {
-          // Fetch real course details
-          const courseResponse = await http<any>(`/api/courses/${params.id}`)
-          setCourse(courseResponse)
-          
-          // Check if course is in public mode
-          const isPublic = courseResponse.course_mode === 'public'
-          setIsPublicMode(isPublic)
-          
-          // Update user object with course_mode for sidebar detection
-          if (isPublic && user) {
-            const updatedUser = { ...user, course_mode: 'public' as const }
-            const { setUser } = useAuthStore.getState()
-            setUser(updatedUser)
-          }
-          
-          // Fetch real modules data
-          try {
-            const modulesResponse = await http<any>(`/api/modules/course/${params.id}`)
-            setModules(modulesResponse.items || [])
-          } catch (modulesError) {
-            console.warn('Failed to fetch modules:', modulesError)
-            setModules([]) // Set empty array if modules fetch fails
-          }
-          
-        } catch (err: any) {
-          setError(err.message || "Failed to load course")
-          console.error('Course fetch error:', err)
-        } finally {
-          setLoading(false)
-        }
-      }
-      
-      fetchCourseData()
+      refreshCourseData()
     }
+  }, [params.id, user?.email])
+
+  // Auto-refresh every 30 seconds to get latest course updates
+  useEffect(() => {
+    if (!params.id || !user?.email) return
+    
+    const interval = setInterval(() => {
+      refreshCourseData()
+    }, 30000) // Refresh every 30 seconds
+    
+    return () => clearInterval(interval)
   }, [params.id, user?.email])
 
   // Fetch lessons for each module
@@ -106,7 +121,7 @@ export default function StudentCourseDetailPage() {
       
       fetchLessonsForModules()
     }
-  }, [modules, user?.email])
+  }, [modules, user?.email, lastFetchTime]) // Re-fetch lessons when course data is refreshed
 
   const stats = useMemo(() => {
     if (!modulesWithLessons) return { modules: 0, lessons: 0, completed: 0 }
@@ -191,7 +206,22 @@ export default function StudentCourseDetailPage() {
             <div className="text-right">
               <p className="text-sm text-slate-400">Instructor</p>
               <p className="text-white font-medium">{course.instructor}</p>
+              {lastFetchTime > 0 && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Last updated: {new Date(lastFetchTime).toLocaleTimeString()}
+                </p>
+              )}
             </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={refreshCourseData}
+              disabled={loading}
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
             {modulesWithLessons.length > 0 && modulesWithLessons[0].lessons.length > 0 && (
               <Link href={`/student/course/${params.id}/study/${modulesWithLessons[0].id}/${modulesWithLessons[0].lessons[0].id}`}>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">

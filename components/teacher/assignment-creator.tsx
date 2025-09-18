@@ -47,7 +47,7 @@ import {
 } from "lucide-react"
 
 interface AssignmentCreatorProps {
-  scope?: { level: "course" | "module" | "lesson"; moduleId?: string; lessonId?: string }
+  scope?: { level?: "course" | "module" | "lesson"; moduleId?: string; lessonId?: string }
   scopeLabel?: string
   courseId?: string // Add courseId prop to pre-populate the course
   onCancel?: () => void
@@ -1031,8 +1031,7 @@ export function AssignmentCreator({ scope, scopeLabel, courseId: propCourseId, o
         )}
 
         {/* Form Actions */}
-        {!isReadOnly && (
-          <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-white/10">
+        <div className="flex justify-end gap-3 pt-6 mt-6 border-t border-white/10">
             <Button
               type="button"
               variant="ghost"
@@ -1049,7 +1048,6 @@ export function AssignmentCreator({ scope, scopeLabel, courseId: propCourseId, o
               {loading ? "Creating..." : "Create Assignment"}
             </Button>
           </div>
-        )}
       </form>
     </div>
   )

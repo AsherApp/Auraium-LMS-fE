@@ -2,7 +2,7 @@
 
 import { create } from "zustand"
 
-export type LessonType = "video" | "quiz" | "file" | "discussion" | "poll"
+export type LessonType = "video" | "quiz" | "file" | "discussion" | "poll" | "text"
 
 export type LessonContent = {
   video?: { url: string; description?: string }
@@ -12,6 +12,7 @@ export type LessonContent = {
   }
   discussion?: { prompt: string }
   poll?: { question: string; options: string[] }
+  text?: { content: string; title?: string }
 }
 
 export type Lesson = {

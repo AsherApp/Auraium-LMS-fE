@@ -14,7 +14,7 @@ import { useCoursesFn } from "@/services/courses/hook"
 import { createModule } from "@/services/modules/api"
 import { createLesson } from "@/services/lessons/api"
 import { cn } from "@/lib/utils"
-import { Plus, Trash2, BookOpen, PlayCircle, FileText, MessageSquare, BarChart2, ClipboardList, Clock, Star, AlertCircle, CheckCircle, Settings, Video, Upload, Link, Users, CheckSquare } from "lucide-react"
+import { Plus, Trash2, BookOpen, PlayCircle, FileText, MessageSquare, BarChart2, ClipboardList, Clock, Star, AlertCircle, CheckCircle, Settings, Video, Upload, Link, Users, CheckSquare, X, ArrowLeft } from "lucide-react"
 
 interface Module {
   id: string
@@ -419,7 +419,29 @@ export default function NewCourseWizardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-white text-2xl font-semibold">Create New Course</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-white text-2xl font-semibold">Create New Course</h1>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="text-slate-400 hover:text-white hover:bg-white/10"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push('/teacher/courses')}
+            className="text-slate-400 hover:text-white hover:bg-white/10"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Cancel
+          </Button>
+        </div>
+      </div>
 
       <GlassCard className="p-6 space-y-6">
         <StepIndicator />
