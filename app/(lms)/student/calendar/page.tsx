@@ -107,29 +107,45 @@ export default function StudentCalendar() {
       const liveSessions = liveSessionsResponse.items || liveSessionsResponse || []
 
       // Convert live sessions to calendar events
-      const liveSessionEvents = liveSessions.map((session: any) => ({
-        id: `live_${session.id}`,
-        title: session.title,
-        description: session.description || 'Live Class Session',
-        event_type: 'live_class' as Event['event_type'],
-        start_time: session.start_at || session.scheduled_at,
-        end_time: session.end_at || new Date(new Date(session.start_at || session.scheduled_at).getTime() + 60 * 60 * 1000).toISOString(), // Default 1 hour
-        all_day: false,
-        location: 'Virtual Classroom',
-        course_id: session.course_id,
-        course: session.course,
-        color: '#EF4444', // Red for live sessions
-        is_public: true,
-        requires_rsvp: false,
-        created_by: session.host_email,
-        created_at: session.created_at,
-        updated_at: session.updated_at,
-        // Live session specific fields
-        is_live_session: true,
-        live_session_id: session.id,
-        live_session_status: session.status,
-        live_session_host: session.host_email
-      }))
+      const liveSessionEvents = liveSessions.map((session: any) => {
+        // Validate and parse start time
+        const startTime = session.start_at || session.scheduled_at
+        const startDate = startTime ? new Date(startTime) : new Date()
+        
+        // Check if start date is valid
+        const isValidStartDate = !isNaN(startDate.getTime())
+        const validStartTime = isValidStartDate ? startDate : new Date()
+        
+        // Calculate end time (default 1 hour if no end time provided)
+        const endTime = session.end_at || new Date(validStartTime.getTime() + 60 * 60 * 1000)
+        const endDate = new Date(endTime)
+        const isValidEndDate = !isNaN(endDate.getTime())
+        const validEndTime = isValidEndDate ? endDate : new Date(validStartTime.getTime() + 60 * 60 * 1000)
+        
+        return {
+          id: `live_${session.id}`,
+          title: session.title,
+          description: session.description || 'Live Class Session',
+          event_type: 'live_class' as Event['event_type'],
+          start_time: validStartTime.toISOString(),
+          end_time: validEndTime.toISOString(),
+          all_day: false,
+          location: 'Virtual Classroom',
+          course_id: session.course_id,
+          course: session.course,
+          color: '#EF4444', // Red for live sessions
+          is_public: true,
+          requires_rsvp: false,
+          created_by: session.host_email,
+          created_at: session.created_at,
+          updated_at: session.updated_at,
+          // Live session specific fields
+          is_live_session: true,
+          live_session_id: session.id,
+          live_session_status: session.status,
+          live_session_host: session.host_email
+        }
+      })
 
       // Combine events and live sessions
       const allEvents = [...events, ...liveSessionEvents]
