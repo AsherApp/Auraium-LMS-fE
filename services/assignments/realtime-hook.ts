@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { AssignmentAPI, type Assignment, type Submission, type CreateAssignmentData, type UpdateAssignmentData, type CreateSubmissionData, type UpdateSubmissionData, type GradeSubmissionData } from './api'
+import { AssignmentAPI, getMyAssignments, type Assignment, type Submission, type CreateAssignmentData, type UpdateAssignmentData, type CreateSubmissionData, type UpdateSubmissionData, type GradeSubmissionData } from './api'
 import { useToast } from '@/hooks/use-toast'
 
 // Enhanced hook with optimistic updates and real-time feedback
