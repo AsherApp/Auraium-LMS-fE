@@ -339,7 +339,7 @@ export default function StudentDiscussionDetailPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-white text-sm font-medium">{reply.author_name || reply.created_by}</span>
+                          <span className="text-white text-sm font-medium">{reply.author_name || reply.author_email}</span>
                           <Badge variant="outline" className="text-xs">
                             {reply.author_role}
                           </Badge>
