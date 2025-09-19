@@ -20,6 +20,7 @@ import { getViewerType, canPreviewFile, contentToFileInfo, getPreviewButtonText,
 import {
   BookOpen,
   Video,
+  Type,
   FileText,
   ClipboardList,
   CheckCircle,
@@ -938,6 +939,8 @@ export function CleanStudyArea({ courseId, title = "Study Area" }: CleanStudyAre
                                 ) : isAccessible ? (
                                   lesson.type === 'video' ? (
                                     <Video className="h-3 w-3" />
+                                  ) : lesson.type === 'text' ? (
+                                    <Type className="h-3 w-3" />
                                   ) : lesson.type === 'quiz' ? (
                                     <ClipboardList className="h-3 w-3" />
                                   ) : (

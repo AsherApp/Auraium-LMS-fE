@@ -12,7 +12,7 @@ import { Plus, Trash2, Pencil, PlayCircle } from "lucide-react"
 interface Lesson {
   id: string
   title: string
-  type: "video" | "quiz" | "file" | "discussion" | "poll"
+  type: "video" | "quiz" | "file" | "discussion" | "poll" | "text"
   description: string
   module_id: string
   order_index: number
@@ -44,7 +44,7 @@ export function LessonManagement({
 }: LessonManagementProps) {
   const [lessonOpen, setLessonOpen] = useState(false)
   const [lessonTitle, setLessonTitle] = useState("")
-  const [lessonType, setLessonType] = useState<"video" | "quiz" | "file" | "discussion" | "poll">("video")
+  const [lessonType, setLessonType] = useState<"video" | "quiz" | "file" | "discussion" | "poll" | "text">("video")
   const [lessonDescription, setLessonDescription] = useState("")
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null)
   const { toast } = useToast()
@@ -192,6 +192,7 @@ export function LessonManagement({
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-white/20">
                     <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="text">Text</SelectItem>
                     <SelectItem value="quiz">Quiz</SelectItem>
                     <SelectItem value="file">File</SelectItem>
                     <SelectItem value="discussion">Discussion</SelectItem>
