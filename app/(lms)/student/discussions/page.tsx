@@ -99,11 +99,13 @@ export default function StudentDiscussionsPage() {
     try {
       // Get enrolled courses
       const coursesResponse = await http<any>(`/api/students/me/courses`)
-      console.log('Courses response:', coursesResponse)
       const enrolledCourses = coursesResponse.items || []
       const courses = enrolledCourses.map((enrollment: any) => enrollment.courses).filter(Boolean)
-      console.log('Enrolled courses:', courses)
       setCoursesList(courses)
+      
+      if (courses.length === 0) {
+        console.log('No enrolled courses found for student')
+      }
     } catch (error: any) {
       console.error('Failed to fetch student data:', error)
     }
@@ -114,17 +116,11 @@ export default function StudentDiscussionsPage() {
     try {
       let discussionsData: Discussion[] = []
       
-      console.log('Fetching discussions for course:', selectedCourse)
-      console.log('Available courses:', coursesList)
-      
       if (selectedCourse === "all") {
         // Fetch discussions from all enrolled courses
         const promises = (coursesList || []).map(course => 
           http<Discussion[]>(`/api/discussions/course/${course.id}`)
-            .then(response => {
-              console.log(`Discussions for course ${course.id}:`, response)
-              return Array.isArray(response) ? response : []
-            })
+            .then(response => Array.isArray(response) ? response : [])
             .catch(error => {
               console.error(`Error fetching discussions for course ${course.id}:`, error)
               return []
@@ -136,7 +132,6 @@ export default function StudentDiscussionsPage() {
       } else {
         // Fetch discussions from specific course
         const response = await http<Discussion[]>(`/api/discussions/course/${selectedCourse}`)
-        console.log('Discussions response:', response)
         discussionsData = Array.isArray(response) ? response : []
       }
 
@@ -164,9 +159,7 @@ export default function StudentDiscussionsPage() {
 
   const fetchAnnouncements = async () => {
     try {
-      console.log('Fetching announcements...')
       const response = await http<any>('/api/announcements/student')
-      console.log('Announcements response:', response)
       setAnnouncements(response.items || [])
     } catch (error: any) {
       console.error('Failed to fetch announcements:', error)
@@ -381,11 +374,19 @@ export default function StudentDiscussionsPage() {
               <Bell className="h-12 w-12 text-slate-400 mx-auto mb-4" />
               <h3 className="text-white text-lg font-medium mb-2">No announcements found</h3>
               <p className="text-slate-400 mb-4">
-                {searchQuery 
-                  ? "No announcements match your search criteria."
-                  : "No announcements have been posted yet."
+                {coursesList.length === 0 
+                  ? "You are not enrolled in any courses yet. Please contact your teacher to get enrolled."
+                  : searchQuery 
+                    ? "No announcements match your search criteria."
+                    : "No announcements have been posted yet."
                 }
               </p>
+              {coursesList.length === 0 && (
+                <Link href="/student/courses" className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300">
+                  <BookOpen className="h-4 w-4" />
+                  View Available Courses
+                </Link>
+              )}
             </GlassCard>
           ) : (
             <div className="space-y-4">
@@ -457,11 +458,19 @@ export default function StudentDiscussionsPage() {
               <MessageCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
               <h3 className="text-white text-lg font-medium mb-2">No discussions found</h3>
               <p className="text-slate-400 mb-4">
-                {searchQuery 
-                  ? "No discussions match your search criteria."
-                  : "No discussions have been created yet."
+                {coursesList.length === 0 
+                  ? "You are not enrolled in any courses yet. Please contact your teacher to get enrolled."
+                  : searchQuery 
+                    ? "No discussions match your search criteria."
+                    : "No discussions have been created yet."
                 }
               </p>
+              {coursesList.length === 0 && (
+                <Link href="/student/courses" className="inline-flex items-center gap-2 text-blue-400 hover:text-blue-300">
+                  <BookOpen className="h-4 w-4" />
+                  View Available Courses
+                </Link>
+              )}
             </GlassCard>
           ) : (
             <div className="space-y-4">
