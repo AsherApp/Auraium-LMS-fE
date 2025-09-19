@@ -99,8 +99,11 @@ export default function StudentDiscussionsPage() {
     try {
       // Get enrolled courses
       const coursesResponse = await http<any>(`/api/students/me/courses`)
+      console.log('Courses response:', coursesResponse)
       const enrolledCourses = coursesResponse.items || []
-      setCoursesList(enrolledCourses.map((enrollment: any) => enrollment.courses).filter(Boolean))
+      const courses = enrolledCourses.map((enrollment: any) => enrollment.courses).filter(Boolean)
+      console.log('Enrolled courses:', courses)
+      setCoursesList(courses)
     } catch (error: any) {
       console.error('Failed to fetch student data:', error)
     }
@@ -111,12 +114,21 @@ export default function StudentDiscussionsPage() {
     try {
       let discussionsData: Discussion[] = []
       
+      console.log('Fetching discussions for course:', selectedCourse)
+      console.log('Available courses:', coursesList)
+      
       if (selectedCourse === "all") {
         // Fetch discussions from all enrolled courses
         const promises = (coursesList || []).map(course => 
           http<Discussion[]>(`/api/discussions/course/${course.id}`)
-            .then(response => Array.isArray(response) ? response : [])
-            .catch(() => [])
+            .then(response => {
+              console.log(`Discussions for course ${course.id}:`, response)
+              return Array.isArray(response) ? response : []
+            })
+            .catch(error => {
+              console.error(`Error fetching discussions for course ${course.id}:`, error)
+              return []
+            })
         )
         
         const results = await Promise.all(promises)
@@ -124,6 +136,7 @@ export default function StudentDiscussionsPage() {
       } else {
         // Fetch discussions from specific course
         const response = await http<Discussion[]>(`/api/discussions/course/${selectedCourse}`)
+        console.log('Discussions response:', response)
         discussionsData = Array.isArray(response) ? response : []
       }
 
@@ -151,7 +164,9 @@ export default function StudentDiscussionsPage() {
 
   const fetchAnnouncements = async () => {
     try {
+      console.log('Fetching announcements...')
       const response = await http<any>('/api/announcements/student')
+      console.log('Announcements response:', response)
       setAnnouncements(response.items || [])
     } catch (error: any) {
       console.error('Failed to fetch announcements:', error)
