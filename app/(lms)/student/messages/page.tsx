@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuthStore } from "@/store/auth-store"
 import { useMessagesFn } from "@/hooks/use-messages"
 import { useToast } from "@/hooks/use-toast"
+import { http } from "@/services/http"
 import { Search, Filter, Star, Archive, Trash2, Send, Reply, Forward, MoreVertical, Mail, MailOpen, Clock, User, BookOpen } from "lucide-react"
 
 export default function StudentMessagesPage() {
@@ -45,17 +46,16 @@ export default function StudentMessagesPage() {
     
     try {
       setLoadingTeachers(true)
-      const response = await fetch('/api/students/me/courses', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth-token')}`,
-          'Content-Type': 'application/json'
-        }
-      })
-      
-      if (!response.ok) throw new Error('Failed to fetch courses')
-      
-      const data = await response.json()
+      console.log('Fetching teachers for student:', user.email)
+      const data = await http<any>('/api/students/me/courses')
+      console.log('Courses response:', data)
       const enrollments = data.items || []
+      
+      if (enrollments.length === 0) {
+        console.log('No enrolled courses found')
+        setTeachers([])
+        return
+      }
       
       // Extract unique teachers from enrolled courses
       const teacherMap = new Map()
@@ -72,10 +72,16 @@ export default function StudentMessagesPage() {
         }
       })
       
-      setTeachers(Array.from(teacherMap.values()))
+      const teachers = Array.from(teacherMap.values())
+      console.log('Found teachers:', teachers)
+      setTeachers(teachers)
     } catch (error) {
       console.error('Failed to fetch teachers:', error)
-      toast({ title: "Failed to load teachers", variant: "destructive" })
+      toast({ 
+        title: "Failed to load teachers", 
+        description: "Unable to fetch your course teachers. Please try again.",
+        variant: "destructive" 
+      })
     } finally {
       setLoadingTeachers(false)
     }
