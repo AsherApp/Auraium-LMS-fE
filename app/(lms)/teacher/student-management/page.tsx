@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
 import { PendingInvitesWidget } from "@/components/teacher/pending-invites-widget"
 import { StudentLimitEnforcer, useStudentLimit } from "@/components/shared/student-limit-enforcer"
+import { useStudentActivitiesOverview } from "@/services/student-activity/hook"
+import { StudentActivityAPI } from "@/services/student-activity/api"
 import { 
   Users, 
   Search, 
@@ -86,6 +88,25 @@ export default function TeacherStudentManagement() {
 
   // Student limit enforcement
   const { canAddStudents, getUpgradeMessage, subscriptionStatus } = useStudentLimit()
+  
+  // Activity tracking
+  const [showActivityDialog, setShowActivityDialog] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<ConsolidatedStudent | null>(null)
+  const [activityFilter, setActivityFilter] = useState("all")
+  const { activities: recentActivities, loading: activitiesLoading, fetchOverview } = useStudentActivitiesOverview()
+
+  // Helper function to log activities
+  const logActivity = async (activityType: string, studentId: string, additionalData?: Record<string, any>) => {
+    try {
+      await StudentActivityAPI.logActivity({
+        student_id: studentId,
+        activity_type: activityType,
+        activity_data: additionalData || {}
+      })
+    } catch (error) {
+      console.error('Failed to log activity:', error)
+    }
+  }
 
   // Fetch consolidated student data with live updates
   useEffect(() => {
@@ -354,6 +375,62 @@ export default function TeacherStudentManagement() {
           </div>
         </GlassCard>
       </div>
+
+      {/* Recent Activity Section */}
+      <GlassCard className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-white text-lg font-semibold flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Recent Student Activity
+            </h3>
+            <p className="text-slate-400 text-sm">Latest activities from all students</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchOverview()}
+            disabled={activitiesLoading}
+          >
+            {activitiesLoading ? "Refreshing..." : "Refresh"}
+          </Button>
+        </div>
+
+        {activitiesLoading ? (
+          <div className="text-center py-8">
+            <div className="text-slate-400">Loading activities...</div>
+          </div>
+        ) : recentActivities.length === 0 ? (
+          <div className="text-center py-8">
+            <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+            <div className="text-slate-400">No recent activity</div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentActivities.slice(0, 10).map((activity) => (
+              <div key={activity.id} className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
+                <div className="p-2 rounded-md bg-blue-600/20 text-blue-300">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-white text-sm font-medium">
+                    {activity.students?.first_name} {activity.students?.last_name}
+                  </div>
+                  <div className="text-slate-400 text-xs">
+                    {activity.activity_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {activity.courses && ` • ${activity.courses.title}`}
+                    {activity.lessons && ` • ${activity.lessons.title}`}
+                    {activity.assignments && ` • ${activity.assignments.title}`}
+                  </div>
+                </div>
+                <div className="text-slate-400 text-xs">
+                  {new Date(activity.created_at).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
 
       {/* Pending Invites Section */}
       <PendingInvitesWidget 
