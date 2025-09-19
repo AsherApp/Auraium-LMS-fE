@@ -82,7 +82,28 @@ export default function TeacherCourseDetailPage() {
   const { activeTab, setActiveTab, handleTabChange } = useFluidTabs('curriculum')
 
   // Use the new course detail hook
-  const { course, loading: courseLoading, error: courseError, updateCourse } = useCourseDetailFn(params?.id || '')
+  const { course, loading: courseLoading, error: courseError, updateCourse, refetch: refetchCourse } = useCourseDetailFn(params?.id || '')
+
+  // Refresh course data when page becomes visible (e.g., returning from certificates page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refetchCourse()
+      }
+    }
+
+    const handleFocus = () => {
+      refetchCourse()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [refetchCourse])
 
   // Use the new modules hook
   const { modules, loading: modulesLoading, create: createModule, update: updateModule, remove: deleteModule } = useModulesByCourse(params?.id || '')

@@ -65,6 +65,8 @@ export default function CourseCertificatesPage() {
     if (course) {
       setCourse({ ...course, certificate_config: config })
     }
+    // Refresh the course data to update the main course page
+    fetchCourseData()
   }
 
   if (loading) {

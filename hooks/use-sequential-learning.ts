@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ProgressAPI } from '@/services/progress/api'
+import { CertificateAPI } from '@/services/certificates/api'
 import { useToast } from '@/hooks/use-toast'
 
 interface Lesson {
@@ -563,6 +564,16 @@ export function useSequentialLearning(
         completionPercentage: 100,
         timeSpentSeconds: 0
       })
+
+      // Generate certificate if certificates are enabled for this course
+      try {
+        if (course.certificate_config?.enabled) {
+          await CertificateAPI.autoGenerateCertificate(courseId)
+        }
+      } catch (certError) {
+        console.error('Error generating certificate:', certError)
+        // Don't fail the course completion if certificate generation fails
+      }
 
       setState(prev => ({
         ...prev,
